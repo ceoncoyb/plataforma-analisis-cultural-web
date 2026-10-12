@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://plataforma-analisis-cultural-web.pages.dev/sitemap.xml

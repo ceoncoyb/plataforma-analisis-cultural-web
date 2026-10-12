@@ -1,0 +1,13 @@
+{
+  "name": "plataforma-analisis-cultural-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sitio público de producto y sandbox local para la Plataforma de análisis cultural.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/site.test.mjs",
+    "verify": "npm test && npm run build"
+  },
+  "engines": { "node": ">=20" }
+}

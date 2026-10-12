@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">Marca de la Plataforma de análisis cultural</title>
+  <rect width="48" height="48" rx="16" fill="#173b35"/>
+  <path d="M12 14h11a7 7 0 1 1 0 14h-4m-3 0h8a7 7 0 1 1 0 14H12" fill="none" stroke="#f8f3e9" stroke-linecap="round" stroke-width="3"/>
+  <circle cx="34" cy="14" r="4" fill="#e98a65"/>
+</svg>

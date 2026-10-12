@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f5f2e9"/>
+  <circle cx="1040" cy="115" r="265" fill="none" stroke="#17453a" stroke-opacity=".13" stroke-width="2"/>
+  <circle cx="1040" cy="115" r="210" fill="none" stroke="#17453a" stroke-opacity=".12" stroke-width="2"/>
+  <circle cx="1040" cy="115" r="155" fill="none" stroke="#17453a" stroke-opacity=".11" stroke-width="2"/>
+  <rect x="78" y="76" width="54" height="54" rx="17" fill="#173b35"/>
+  <path d="M94 92h13a8 8 0 1 1 0 16h-5m-4 0h9a8 8 0 1 1 0 16H94" fill="none" stroke="#f8f3e9" stroke-linecap="round" stroke-width="3"/>
+  <circle cx="119" cy="92" r="4" fill="#e58966"/>
+  <text x="152" y="98" fill="#182d2a" font-family="Arial,sans-serif" font-size="19" font-weight="700">PLATAFORMA DE ANÁLISIS CULTURAL</text>
+  <text x="80" y="265" fill="#182d2a" font-family="Arial,sans-serif" font-size="67" font-weight="600" letter-spacing="-3">Evidencia, método</text>
+  <text x="80" y="345" fill="#216553" font-family="Georgia,serif" font-size="73" font-style="italic">y criterio propio.</text>
+  <text x="84" y="415" fill="#4d625d" font-family="Arial,sans-serif" font-size="23">Un entorno transversal para investigación aplicada.</text>
+  <g transform="translate(82 485)"><rect width="189" height="46" rx="23" fill="#17453a"/><text x="25" y="30" fill="#fffdf7" font-family="Arial,sans-serif" font-size="15" font-weight="700">Demo interactiva  →</text></g>
+</svg>

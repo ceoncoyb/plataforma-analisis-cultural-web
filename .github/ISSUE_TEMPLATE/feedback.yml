@@ -1,0 +1,36 @@
+name: Comentario de producto
+description: Comparte una necesidad, fricción o error del prototipo público.
+title: "[Producto]: "
+labels: ["product-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        No incluyas nombres de participantes, datos sensibles, corpus privado ni archivos con información personal.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Tipo de comentario
+      options:
+        - Necesidad de investigación
+        - Fricción de uso
+        - Accesibilidad
+        - Error técnico
+        - Integración con ChatGPT
+        - Modelo de acceso
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Situación y resultado esperado
+      description: Explica la tarea, el obstáculo y cómo sabrías que quedó resuelto.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Campo o contexto de uso
+      description: Ej. UX, trabajo cualitativo, estudio cultural, sistemas, otro.
+    validations:
+      required: false
