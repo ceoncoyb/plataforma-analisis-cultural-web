@@ -62,7 +62,8 @@ function queueCloudWrite(key=scopeKey()) {
       const result=await cloudRequest("POST",saved);
       setCloudStatus(`Sincronizado en D1 · ${result.updated_at}. El original y los medios siguen locales.`,{saved:true});
     } catch(error) {
-      setCloudStatus(error.login?"D1 está protegida. Inicia sesión con Cloudflare Access para sincronizar." : `Copia local conservada; D1 no sincronizó: ${error.message}`,{login:Boolean(error.login)});
+      const login=Boolean(error.login||error instanceof TypeError);
+      setCloudStatus(login?"D1 está protegida. Inicia sesión con Cloudflare Access para sincronizar." : `Copia local conservada; D1 no sincronizó: ${error.message}`,{login});
     }
   });
 }
@@ -86,7 +87,8 @@ function loadCloudDraft(key=scopeKey()) {
         setCloudStatus(`Borrador conciliado y sincronizado en D1 · ${result.updated_at}.`,{saved:true});
       } else setCloudStatus(remote.updated_at?`Borrador recuperado de D1 · ${remote.updated_at}.`:"D1 conectada; aún no hay decisiones guardadas para esta revisión.",{saved:Boolean(remote.updated_at)});
     } catch(error) {
-      setCloudStatus(error.login?"D1 está protegida. Inicia sesión con Cloudflare Access para recuperar o sincronizar." : `La copia local sigue disponible; D1 no respondió: ${error.message}`,{login:Boolean(error.login)});
+      const login=Boolean(error.login||error instanceof TypeError);
+      setCloudStatus(login?"D1 está protegida. Inicia sesión con Cloudflare Access para recuperar o sincronizar." : `La copia local sigue disponible; D1 no respondió: ${error.message}`,{login});
     }
   });
 }
@@ -228,7 +230,7 @@ $("#recover-draft").addEventListener("click",recover);
 $("#delete-cloud-draft").addEventListener("click",async()=>{
   if(!state.manifest||!window.confirm("¿Eliminar de D1 la copia remota de las decisiones de este proyecto y revisión? La copia local no se borrará."))return;
   try{await cloudRequest("DELETE");setCloudStatus("Copia remota eliminada. La copia local sigue disponible y no se ha borrado.");}
-  catch(error){setCloudStatus(error.login?"Inicia sesión con Cloudflare Access para borrar la copia remota.":`No se pudo eliminar la copia remota: ${error.message}`,{login:Boolean(error.login),saved:true});}
+  catch(error){const login=Boolean(error.login||error instanceof TypeError);setCloudStatus(login?"Inicia sesión con Cloudflare Access para borrar la copia remota.":`No se pudo eliminar la copia remota: ${error.message}`,{login,saved:true});}
 });
 $("#export-review").addEventListener("click",()=>{if(!state.manifest)return;const annotations=state.draft.annotations;const result=createReviewExport(state.manifest,state.source,annotations,state.draft.cut_candidate_decisions);const blob=new Blob([JSON.stringify(result,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`revision-${(state.manifest.project_id||"proyecto").replace(/[^a-z0-9_-]/gi,"-")}-r${state.manifest.revision??"sin-version"}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setStatus("Revisión exportada como archivo separado. La fuente del plugin sigue intacta.");});
 $("#no-script").hidden=true;
