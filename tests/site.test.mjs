@@ -21,6 +21,8 @@ test("product site presents the corpus lab as cross-disciplinary and configurabl
   assert.match(demo, /Una ficha sintética carga el estudio/);
   assert.match(home, /Sigue cada hallazgo hasta la evidencia que lo sostiene/);
   assert.match(home, /Probar gratis, sin cuenta/);
+  assert.match(home, /Ya tengo acceso · abrir en ChatGPT/);
+  assert.match(home, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
   assert.match(home, /Guía visual del flujo/);
   assert.match(demo, /Prueba el flujo en un clic/);
   assert.match(demo, /no reemplaza tu proyecto/);
@@ -29,6 +31,9 @@ test("product site presents the corpus lab as cross-disciplinary and configurabl
   assert.match(demo, /Campo del estudio/);
   assert.match(demo, /Una estructura común\. Cada campo conserva su método\./);
   assert.match(demo, /no ejecuta el análisis generativo del conector privado/);
+  assert.match(demo, /JSON compatible con la importación del conector/);
+  assert.match(demo, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
+  assert.match(demo, /No modifiques ningún proyecto existente/);
   for (const use of ["Producto / servicio", "Investigación UX", "Cultura y medios", "Políticas / sistemas", "Estudio audiovisual"]) assert.ok(demo.includes(use), `missing adaptable profile ${use}`);
 });
 
@@ -58,6 +63,9 @@ test("corpus lab loads real local video and supports synchronized interval contr
   assert.match(script, /timeupdate/);
   assert.match(script, /canvas\.toBlob/);
   assert.match(script, /startSeconds: rangeStart/);
+  assert.match(script, /schema_version: 1/);
+  assert.match(script, /local_demo_annotation/);
+  assert.match(script, /requires_locator_for_structured_evidence/);
 });
 
 test("lab storage and exports include project scope, corpus annotations and explicit local-only boundaries", async () => {
@@ -134,6 +142,8 @@ test("browser workflow annotates a real selected video interval and persists/exp
   class FakeVideo extends Node { constructor() { super("video"); } }
   const context = {
     document, HTMLVideoElement: FakeVideo, crypto: { randomUUID: () => "12345678-1234-1234-1234-123456789abc" },
+    TextEncoder,
+    navigator: { clipboard: { writeText: async (value) => { context.copiedPrompt = value; } } },
     localStorage: { getItem: (key) => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) },
     URL: { createObjectURL: () => "blob:local", revokeObjectURL: () => {} },
     Blob: class { constructor(parts, options) { this.parts = parts; this.type = options.type; blobs.push(this); } },
@@ -166,12 +176,83 @@ test("browser workflow annotates a real selected video interval and persists/exp
   assert.equal(exported.format, "cultural-analysis-workspace");
   assert.equal(exported.units[0].description, "La interfaz devuelve la sesión a la pantalla inicial.");
   assert.match(exported.note, /No se escribe al MCP/);
+  click("prepare-chatgpt-export");
+  const portable = JSON.parse(blobs.at(-1).parts[0]);
+  assert.equal(portable.schema_version, 1);
+  assert.match(portable.id, /^[a-z0-9][a-z0-9-]{1,80}$/);
+  assert.equal(portable.name, "Prueba de producto");
+  assert.deepEqual(portable.method_profile.layers.map((layer) => layer.id), ["observacion-empirica"]);
+  assert.equal(portable.units.length, 1);
+  assert.equal(portable.units[0].start, "00:05.250");
+  assert.equal(portable.units[0].end, "00:12.750");
+  assert.equal(portable.units[0].local_demo_annotation.provisional_reading, "Posible ruptura de continuidad del flujo.");
+  assert.equal(portable.units[0].local_demo_annotation.interpretation_status, "LOCAL_PROVISIONAL_NOT_A_MCP_READING");
+  assert.equal(portable.sources[0].origin, "user-selected-local-file");
+  assert.equal(portable.sources[0].local_only, true);
+  assert.equal(portable.evidence[0].unit_id, portable.units[0].id);
+  assert.equal(portable.evidence[0].locator, "00:05.250–00:12.750");
+  assert.equal(portable.evidence[0].content, "La interfaz devuelve la sesión a la pantalla inicial.");
+  assert.equal(portable.readings.length, 0);
+  assert.equal(portable.local_demo_transfer.media_binaries_included, false);
+  const importInput = document.querySelector("#import-project");
+  const transferredFile = { name: "portable.json", text: async () => JSON.stringify(portable) };
+  await listeners.get("import-project:change")({ target: { files: [transferredFile], value: "" } });
+  assert.equal(document.querySelector("#study-title").value, "Prueba de producto");
+  assert.equal(document.querySelector("#unit-count").textContent, "1");
+  assert.match(document.querySelector("#save-status").textContent, /Proyecto compatible abierto/);
+  click("prepare-chatgpt-export");
+  const copiedProject = JSON.parse(blobs.at(-1).parts[0]);
+  assert.match(copiedProject.id, /-copy-/);
+  assert.equal(copiedProject.units.length, 1);
+  assert.equal(copiedProject.evidence.length, 1);
+  assert.equal(copiedProject.evidence[0].content, portable.evidence[0].content);
+  assert.equal(copiedProject.sources.length, portable.sources.length);
+  await listeners.get("copy-import-prompt:click")();
+  assert.match(context.copiedPrompt, /proyecto nuevo/);
+  assert.match(context.copiedPrompt, /No modifiques ningún proyecto existente/);
   click("load-sample");
   const sample = JSON.parse(storage.get("cultural-corpus-lab-sample-v1"));
   assert.equal(sample.project.field, "Investigación UX");
   assert.equal(sample.units[0].origin, "annotation");
   assert.match(sample.units[0].description, /Ejemplo ficticio/);
+  assert.equal(sample.units[0].syntheticExample, true);
+  click("prepare-chatgpt-export");
+  const sampleTransfer = JSON.parse(blobs.at(-1).parts[0]);
+  assert.equal(sampleTransfer.evidence.length, 1);
+  assert.equal(sampleTransfer.evidence[0].locator, "Escenario sintético · paso 4 de 6");
+  assert.equal(sampleTransfer.evidence[0].content, sample.units[0].description);
+  assert.equal(sampleTransfer.sources[0].origin, "synthetic-demo-example");
+  assert.match(sampleTransfer.sources[0].reason, /ficticio/);
+  click("new-annotation");
+  document.querySelector("#annotation-label").value = "Nota manual sin fuente";
+  document.querySelector("#annotation-description").value = "Se conserva como nota local sin inventar un localizador.";
+  click("save-annotation");
+  click("prepare-chatgpt-export");
+  const sampleWithUnlinkedNote = JSON.parse(blobs.at(-1).parts[0]);
+  assert.equal(sampleWithUnlinkedNote.units.length, 2);
+  assert.equal(sampleWithUnlinkedNote.evidence.length, 1);
+  assert.equal(sampleWithUnlinkedNote.units[1].local_demo_annotation.requires_locator_for_structured_evidence, true);
+  assert.equal(sampleWithUnlinkedNote.units[1].local_demo_annotation.observation, "Se conserva como nota local sin inventar un localizador.");
   assert.equal(JSON.parse(storage.get("cultural-corpus-lab-v2")).project.title, "Prueba de producto");
   click("restore-workspace");
   assert.equal(document.querySelector("#study-title").value, "Prueba de producto");
+  const siteExport = {
+    format: "analysis-cultural-study", version: 1,
+    project: { title: "Audio exportado desde el Site", field: "Estudio audiovisual", question: "¿Qué ocurre en este intervalo?" },
+    media: { filename: "secuencia.mp4", duration_seconds: 28, local_only: true },
+    units: [{ unit_id: "intervalo-01", start_seconds: 12, end_seconds: 19, label: "Giro de plano", observation: "La cámara cambia de dirección al entrar el personaje.", source: { type: "media", locator: "00:12–00:19" } }],
+  };
+  await listeners.get("import-project:change")({ target: { files: [{ name: "site-export.json", text: async () => JSON.stringify(siteExport) }], value: "" } });
+  assert.equal(document.querySelector("#study-title").value, "Audio exportado desde el Site");
+  assert.equal(document.querySelector("#unit-count").textContent, "1");
+  click("prepare-chatgpt-export");
+  const siteMcpCopy = JSON.parse(blobs.at(-1).parts[0]);
+  assert.equal(siteMcpCopy.schema_version, 1);
+  assert.equal(siteMcpCopy.units[0].id, "intervalo-01");
+  assert.equal(siteMcpCopy.units[0].start, "00:12.000");
+  assert.equal(siteMcpCopy.units[0].end, "00:19.000");
+  assert.equal(siteMcpCopy.evidence[0].locator, "00:12–00:19");
+  assert.equal(siteMcpCopy.evidence[0].content, "La cámara cambia de dirección al entrar el personaje.");
+  assert.equal(siteMcpCopy.sources[0].title, "secuencia.mp4");
+  assert.equal(siteMcpCopy.sources[0].local_only, true);
 });

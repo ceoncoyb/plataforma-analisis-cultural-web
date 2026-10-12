@@ -2,15 +2,13 @@
 
 Landing, sandbox didáctico y documentación pública del producto. Este repositorio no contiene el MCP privado, credenciales, datos de proyectos, corpus, base D1 ni código de QA57/Zotero.
 
-> **Abrir el producto:** [web pública](https://plataforma-analisis-cultural-web.pages.dev/) · [probar la demo sin cuenta](https://plataforma-analisis-cultural-web.pages.dev/demo/).
->
-> El conector MCP de ChatGPT continúa en piloto privado; la demo pública no lo instala ni escribe en sus proyectos.
-
 ## Producto
 
 La Plataforma organiza estudios con perfiles configurables por proyecto, fuentes y evidencia localizables, lecturas contrastables, decisiones humanas y auditoría de cobertura. Su ámbito incluye investigación cultural y de medios, UX, investigación cualitativa, servicios/sistemas y perfiles propios. El laboratorio audiovisual es un piloto especializado dentro del producto.
 
-El sandbox funciona en el navegador. Mantiene las unidades en `localStorage`, permite exportar una ficha didáctica y no invoca el MCP ni genera análisis. El conector ChatGPT actual continúa privado; esta web no altera su identidad, permisos, endpoint, D1 o datos.
+El laboratorio funciona en el navegador para proyectos configurables. Permite importar fichas locales anteriores, el formato audiovisual del Site y proyectos MCP `schema_version: 1`; cargar medios locales, marcar intervalos y registrar observaciones. El botón «Preparar proyecto para ChatGPT» crea una copia compatible con `import_project` para continuar mediante importación manual como proyecto nuevo. No hay sincronización automática ni escritura directa desde la web. Las fichas se guardan en `localStorage`; los medios no se suben ni se incluyen. Una hipótesis local se conserva como nota provisional, no como lectura validada.
+
+El conector ChatGPT continúa privado para la cuenta propietaria; visitantes sin acceso pueden probar y exportar la demo, pero no importar al espacio privado. Esta web no altera la identidad, permisos, endpoint, D1 o datos del conector.
 
 ## Ejecutar
 
@@ -41,7 +39,7 @@ Cloudflare Pages publica el dominio `*.pages.dev`, reconstruye al recibir commit
 
 - `public/`: rutas estáticas, SEO básico, sitemap, icono, privacidad y sandbox.
 - `scripts/build.mjs`: copia estática reproducible a `dist/`.
-- `tests/site.test.mjs`: valida límites del producto, privacidad y rutas principales.
+- `tests/site.test.mjs`: valida el flujo transversal, reproducción de medios, límites del producto, privacidad y rutas principales.
 - `docs/product-brief.md`: audiencia, alcance y funnel.
 - `docs/chatgpt-directory-readiness.md`: preparación para distribución pública del plugin.
 
