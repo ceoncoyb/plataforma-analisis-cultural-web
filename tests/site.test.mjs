@@ -26,6 +26,9 @@ test("product site presents the corpus lab as cross-disciplinary and configurabl
   assert.match(demo, /no reemplaza tu proyecto/);
   assert.match(demo, /Tutorial visual/);
   assert.match(demo, /no se transcribe ni se analiza automáticamente/i);
+  assert.match(demo, /Campo del estudio/);
+  assert.match(demo, /Una estructura común\. Cada campo conserva su método\./);
+  assert.match(demo, /no ejecuta el análisis generativo del conector privado/);
   for (const use of ["Producto / servicio", "Investigación UX", "Cultura y medios", "Políticas / sistemas", "Estudio audiovisual"]) assert.ok(demo.includes(use), `missing adaptable profile ${use}`);
 });
 
