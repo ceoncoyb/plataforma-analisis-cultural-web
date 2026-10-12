@@ -9,8 +9,10 @@ const read = (path) => readFile(join(root, "public", path), "utf8");
 
 test("product site explains the cross-disciplinary product and its actual limits", async () => {
   const home = await read("index.html");
-  assert.match(home, /Cada proyecto configura su propio marco/);
-  assert.match(home, /transversal, transdisciplinaria y multiuso/);
+  assert.match(home, /Conecta cada hallazgo con su evidencia/);
+  assert.match(home, /Armar una ficha de estudio/);
+  assert.match(home, /Reúne entrevistas, sesiones UX, documentos y piezas culturales/);
+  assert.match(home, /Cada estudio define sus propios criterios/);
   assert.match(home, /Investigación de experiencia \(UX\)/);
   assert.match(home, /Estudios culturales y de medios/);
   assert.match(home, /Estudio audiovisual/);
