@@ -27,7 +27,7 @@
 1. **Entender:** en segundos, identificar el trabajo que resuelve: conservar el contexto entre hallazgo, fuente y decisión.
 2. **Ver:** reproducir una guía accesible de 16 segundos; muestra fuente → localizador → observación → lecturas.
 3. **Probar:** cargar un ejemplo sintético en un clic o seleccionar material propio; la demo separa el ejemplo del proyecto local.
-4. **Continuar:** revisar, anotar, exportar y volver al inicio con rutas de navegación claras.
+4. **Continuar:** revisar y anotar en local; exportar una ficha normal o preparar JSON compatible con `import_project`, abrir el conector ChatGPT e importarla como proyecto nuevo. El flujo es manual y no sincroniza datos.
 5. **Validar:** solicitar necesidades mediante GitHub Issues; no prometer acompañamiento, lista de espera ni respuesta comercial.
 5. **Activar después:** ofrecer conexión pública solo cuando exista autenticación por persona, aislamiento entre espacios y privacidad revisada.
 6. **Cobrar después de validar:** definir planes a partir de costos, colaboración, almacenamiento y soporte medidos. No habilitar checkout ni anunciar precios ficticios.
@@ -37,7 +37,7 @@
 - Las personas necesitan volver del hallazgo a la fuente con menos búsqueda manual.
 - Los equipos necesitan conservar desacuerdos, evidencia adversa y lecturas provisionales.
 - Un perfil por proyecto resulta más útil que una plantilla disciplinaria general.
-- La ficha JSON ayuda a entender la estructura, pero por sí sola no demuestra el valor del MCP.
+- La ficha local permite probar la estructura y continuar en el MCP privado mediante una copia compatible, sin sincronización implícita ni acceso compartido a D1.
 - El trabajo audiovisual es un piloto especializado; su detalle de intervalos, imagen y sonido solo corresponde a proyectos que lo necesiten.
 - Un ejemplo listo de primera visita reduce el coste de empezar sin sustituir ni sobrescribir el proyecto propio.
 

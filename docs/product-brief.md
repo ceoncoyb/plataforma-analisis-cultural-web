@@ -17,9 +17,9 @@ La Plataforma es una capa de trabajo para investigaciones aplicadas que necesita
 ## MVP de concurso / capital semilla
 
 1. **Entrada:** web de producto que explica el problema y distingue funciones activas, piloto y roadmap.
-2. **Demostración:** sandbox ejecutable sin cuenta con borrador local, unidades rastreables y descarga JSON.
+2. **Demostración:** laboratorio ejecutable sin cuenta, adaptable a distintos productos/campos, con carga y reproducción de medios locales, anotación de intervalos, importación de formatos de las apps actuales y exportación MCP `schema_version: 1` para continuar manualmente como proyecto nuevo.
 3. **Núcleo MCP actual:** alta/lectura/edición de proyectos, registro de procedencia, unidades, evidencia y lecturas, relaciones revisables, exportación y auditoría estructural; actualmente privado.
-4. **Prueba especializada:** un laboratorio audiovisual que deriva del modelo de proyectos y recorre unidades/secuencias e intervalos de cada caso; no se extrapola como patrón de otras áreas.
+4. **Flujo transversal:** el video aporta controles de tiempo y fotogramas cuando el material lo requiere; los campos y métodos se configuran por proyecto, sin convertir un piloto audiovisual en patrón obligatorio.
 5. **Validación:** pruebas moderadas de primera tarea, finalización del sandbox, claridad de límites, exportación y necesidad de colaboración. No usar cifras o testimonios hasta medirlos.
 
 ## Funnel
@@ -28,7 +28,7 @@ La Plataforma es una capa de trabajo para investigaciones aplicadas que necesita
 |---|---|---|
 | Descubrimiento | Landing, páginas por caso de uso y búsqueda orgánica | Visita cualificada a la explicación del flujo |
 | Comprensión | Ejemplos de cómo se enlaza una fuente con evidencia y decisión | La persona puede explicar qué guarda la herramienta |
-| Prueba | Crear y descargar una ficha local | Ficha exportada sin abandonar por confusión |
+| Prueba | Crear, revisar o transferir una ficha local | JSON local exportado o copia MCP importable como proyecto nuevo |
 | Activación | Conectar el plugin público cuando esté aprobado | Primer proyecto propio creado y recuperable |
 | Retención | Volver a revisar y exportar un proyecto | Uso repetido con decisiones trazables |
 | Conversión | Personal/equipo cuando se validen precio y costos | Pago con aislamiento y soporte ya comprobados |
@@ -55,6 +55,6 @@ Son hipótesis de trabajo. No hay precios, suscripciones, checkout, cuenta multi
 
 ## Posicionamiento y comunicación
 
-La frase principal describe primero el resultado comprobable: cada hallazgo conserva el vínculo con su evidencia y cada estudio configura sus criterios. Los ejemplos de UX, entrevistas, medios y servicios muestran el alcance sin afirmar que todos los campos usan el mismo método. La ficha local es el primer paso del funnel y debe identificarse como demo, no como una integración con el MCP.
+La frase principal describe primero el resultado comprobable: cada hallazgo conserva el vínculo con su evidencia y cada estudio configura sus criterios. Los ejemplos de UX, entrevistas, medios y servicios muestran el alcance sin afirmar que todos los campos usan el mismo método. La demo local no es una sesión sincronizada con el MCP; ofrece una transferencia JSON compatible como proyecto nuevo para cuentas que ya tienen acceso al conector privado.
 
 Las reglas de mensaje, los referentes consultados y las hipótesis pendientes están en [Posicionamiento y estrategia de contenido](positioning-and-content-strategy.md). El lenguaje se formula para personas usuarias, no como jerga del equipo: nombrar el trabajo, mostrar el flujo y conducir a una acción concreta.
