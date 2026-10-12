@@ -74,6 +74,7 @@ test("lab storage and exports include project scope, corpus annotations and expl
   const privacy = await read("privacy/index.html");
   const script = await read("assets/site.js");
   assert.match(privacy, /Los medios seleccionados \(video, audio, imágenes y documentos\) se previsualizan desde memoria local/);
+  assert.match(privacy, /sincroniza únicamente el borrador de revisión/);
   assert.match(demo, /Tu material no se sube ni se envía a ChatGPT/);
   assert.match(demo, /No es la D1 ni escribe en el plugin de ChatGPT/);
   assert.match(demo, /id="import-project"/);
@@ -107,7 +108,7 @@ test("public pages contain no third-party trackers or invented app install links
   }
 });
 
-test("audiovisual review route imports the plugin export and keeps its MCP bridge and local-media boundary", async () => {
+test("audiovisual review route imports the plugin export, syncs review drafts to protected D1, and keeps media local", async () => {
   const html = await read("laboratorio/index.html");
   const script = await read("laboratorio/lab.js");
   assert.match(html, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
@@ -122,8 +123,11 @@ test("audiovisual review route imports the plugin export and keeps its MCP bridg
   assert.match(script, /Ir al tiempo propuesto/);
   assert.match(await read("_headers"), /media-src 'self' blob:/);
   assert.match(script, /No se pudo importar este JSON/);
-  assert.doesNotMatch(script, /fetch\s*\(/);
+  assert.match(script, /fetch\(cloudUrl\(\)/);
+  assert.match(script, /credentials:"same-origin"/);
+  assert.match(html, /Borrar copia de D1/);
   assert.doesNotMatch(script, /\.put\s*\(/);
+  assert.match(await read("../functions/_shared/access.js"), /cf-access-jwt-assertion/);
 });
 
 test("plugin export adaptation preserves IDs, deduplicates canonical collections, and permits projects without subsequences", async () => {
@@ -325,3 +329,4 @@ test("browser workflow annotates a real selected video interval and persists/exp
   assert.equal(siteMcpCopy.sources[0].title, "secuencia.mp4");
   assert.equal(siteMcpCopy.sources[0].local_only, true);
 });
+

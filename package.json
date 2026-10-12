@@ -6,8 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "npm run build && node tests/site.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "verify": "npm test"
   },
   "engines": { "node": ">=20" }
 }
+

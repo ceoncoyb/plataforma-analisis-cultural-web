@@ -6,9 +6,9 @@ Landing, sandbox didáctico y documentación pública del producto. Este reposit
 
 La Plataforma organiza estudios con perfiles configurables por proyecto, fuentes y evidencia localizables, lecturas contrastables, decisiones humanas y auditoría de cobertura. Su ámbito incluye investigación cultural y de medios, UX, investigación cualitativa, servicios/sistemas y perfiles propios. El laboratorio audiovisual es un piloto especializado dentro del producto.
 
-El laboratorio funciona en el navegador para proyectos configurables. Permite importar fichas locales anteriores, el formato audiovisual del Site y proyectos MCP `schema_version: 1`; cargar medios locales, marcar intervalos y registrar observaciones. El botón «Preparar proyecto para ChatGPT» crea una copia compatible con `import_project` para continuar mediante importación manual como proyecto nuevo. No hay sincronización automática ni escritura directa desde la web. Las fichas se guardan en `localStorage`; los medios no se suben ni se incluyen. Una hipótesis local se conserva como nota provisional, no como lectura validada.
+El laboratorio audiovisual importa exportaciones del plugin, mantiene el manifiesto fuente y los medios en el navegador, y conserva las decisiones humanas de cotejo en `localStorage` y en la D1 `analisis-cultural-lab` del proyecto Pages. La API Pages solo acepta solicitudes autenticadas por Cloudflare Access, valida el JWT, restringe el correo a una lista permitida y separa los borradores por usuario, proyecto y revisión. No sube medios ni el manifiesto fuente. El endpoint crea la tabla de revisión si aún no existe. La demo general (`/demo/`) continúa usando almacenamiento local y no escribe en D1.
 
-El conector ChatGPT continúa privado para la cuenta propietaria; visitantes sin acceso pueden probar y exportar la demo, pero no importar al espacio privado. Esta web no altera la identidad, permisos, endpoint, D1 o datos del conector.
+El conector ChatGPT continúa privado para la cuenta propietaria. La D1 de Pages respalda las revisiones del laboratorio; no es la D1 privada del conector ni escribe automáticamente al MCP. La exportación de revisión sigue disponible para transferir resultados al plugin mediante su flujo autorizado.
 
 ## Ejecutar
 
@@ -35,6 +35,10 @@ Configura el proyecto Git conectado al repositorio con:
 
 Cloudflare Pages publica el dominio `*.pages.dev`, reconstruye al recibir commits y crea vistas previas para cambios de ramas/PR. Un dominio propio se conecta después desde Pages si se dispone de su zona DNS.
 
+## D1 y acceso del laboratorio
+
+La base `analisis-cultural-lab` debe estar enlazada a Pages con la variable `DB`. Protege `https://plataforma-analisis-cultural-web.pages.dev/api/*` con una aplicación Self-hosted de Cloudflare Access y una política Allow limitada a las identidades propietarias. Configura las variables de producción `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` y `CF_ACCESS_ALLOWED_EMAILS` en Pages. Sin las tres variables, la API falla de forma cerrada. Guía paso a paso: [`docs/cloudflare-d1-setup.md`](docs/cloudflare-d1-setup.md).
+
 ## Estructura
 
 - `public/`: rutas estáticas, SEO básico, sitemap, icono, privacidad y sandbox.
@@ -46,3 +50,4 @@ Cloudflare Pages publica el dominio `*.pages.dev`, reconstruye al recibir commit
 ## Publicación del plugin
 
 El endpoint privado ya existente no se cambia ni se publica desde esta web. Consulta [los criterios de preparación](docs/chatgpt-directory-readiness.md): autenticar usuarios externos, aislar sus espacios y preparar pruebas/privacidad en una arquitectura pública requiere una revisión separada. No copies secretos ni conectes este repositorio a la D1 privada.
+

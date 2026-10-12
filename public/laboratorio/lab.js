@@ -5,6 +5,7 @@ import {
 
 const $ = (s) => document.querySelector(s);
 const state = { source: null, project: null, manifest: null, media: null, mediaUrl: null, mediaIdentity: "unknown", mediaHash: null, draft: { annotations: [], cut_candidate_decisions: [] }, selected: null, frameUrl: null, frameTimer: null };
+let cloudQueue = Promise.resolve();
 const safe = (v) => String(v ?? "");
 const esc = (v) => safe(v).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = (v) => { const n = toSeconds(v); if (n == null) return safe(v) || "—"; const mm = Math.floor(n/60), ss = (n%60).toFixed(3).padStart(6,"0"); return `${String(mm).padStart(2,"0")}:${ss}`; };
@@ -13,9 +14,85 @@ const idOf = (row) => String(row?.id ?? "");
 function projectOf(source) { return source?.project && typeof source.project === "object" ? source.project : source; }
 function setStatus(message, error = false) { const n=$("#import-status"); n.textContent=message; n.style.color=error?"#a6483f":""; }
 function currentDecision(id) { return state.draft.cut_candidate_decisions.find((d)=>String(d.candidate_id)===String(id)); }
+function scopeKey(manifest=state.manifest) { return manifest ? `${manifest.project_id}:r${manifest.revision??"unversioned"}` : ""; }
+function setCloudStatus(message, { login=false, saved=false }={}) {
+  const status=$("#cloudflare-sync-status");
+  if(status)status.textContent=message;
+  const connect=$("#connect-cloudflare");if(connect)connect.hidden=!login;
+  const remove=$("#delete-cloud-draft");if(remove)remove.hidden=!saved;
+}
+function mergeRows(localRows,remoteRows,key,dateKey) {
+  const merged=new Map();
+  for(const row of remoteRows||[])if(row&&row[key]!=null)merged.set(String(row[key]),row);
+  for(const row of localRows||[]) {
+    if(!row||row[key]==null){continue;}
+    const id=String(row[key]),existing=merged.get(id);
+    if(!existing||Date.parse(row[dateKey]||"")>=Date.parse(existing[dateKey]||""))merged.set(id,row);
+  }
+  return [...merged.values()];
+}
+function sameRows(a,b,key) {
+  const clean=(rows)=>[...(rows||[])].sort((x,y)=>String(x?.[key]??"").localeCompare(String(y?.[key]??"")));
+  return JSON.stringify(clean(a))===JSON.stringify(clean(b));
+}
+function reviewPayload() {
+  return { schema:"analysis-cultural/review-draft/v1", project_id:String(state.manifest.project_id),
+    project_revision:state.manifest.revision??null, annotations:state.draft.annotations,
+    cut_candidate_decisions:state.draft.cut_candidate_decisions };
+}
+function cloudUrl() {
+  const query=new URLSearchParams({project_id:String(state.manifest.project_id),revision:String(state.manifest.revision??"unversioned")});
+  return `/api/review-draft?${query}`;
+}
+async function cloudRequest(method,body) {
+  const response=await fetch(cloudUrl(),{method,credentials:"same-origin",
+    headers:body?{"content-type":"application/json"}:{},body:body?JSON.stringify(body):undefined});
+  const type=response.headers.get("content-type")||"";
+  if(!type.includes("application/json"))throw Object.assign(new Error("Cloudflare Access login is required."),{login:true});
+  const payload=await response.json();
+  if(!response.ok)throw Object.assign(new Error(payload.error||`Cloudflare D1 returned ${response.status}.`),{status:response.status,login:response.status===401||response.status===403});
+  return payload;
+}
+function queueCloudWrite(key=scopeKey()) {
+  cloudQueue=cloudQueue.catch(()=>{}).then(async()=>{
+    if(!state.manifest||scopeKey()!==key)return;
+    if(!state.manifest.project_id){setCloudStatus("Este proyecto no trae un ID; su borrador permanece local.");return;}
+    try {
+      const saved=saveReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision,state.draft);
+      const result=await cloudRequest("POST",saved);
+      setCloudStatus(`Sincronizado en D1 · ${result.updated_at}. El original y los medios siguen locales.`,{saved:true});
+    } catch(error) {
+      setCloudStatus(error.login?"D1 está protegida. Inicia sesión con Cloudflare Access para sincronizar." : `Copia local conservada; D1 no sincronizó: ${error.message}`,{login:Boolean(error.login)});
+    }
+  });
+}
+function loadCloudDraft(key=scopeKey()) {
+  cloudQueue=cloudQueue.catch(()=>{}).then(async()=>{
+    if(!state.manifest||scopeKey()!==key)return;
+    if(!state.manifest.project_id){setCloudStatus("Este proyecto no trae un ID; su borrador permanece local.");return;}
+    try {
+      const remote=await cloudRequest("GET");
+      if(!state.manifest||scopeKey()!==key)return;
+      const local=state.draft, server=remote.draft||{annotations:[],cut_candidate_decisions:[]};
+      const merged={annotations:mergeRows(local.annotations,server.annotations,"id","updated_at"),
+        cut_candidate_decisions:mergeRows(local.cut_candidate_decisions,server.cut_candidate_decisions,"candidate_id","reviewed_at")};
+      state.draft=merged;
+      saveReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision,merged);
+      renderCandidates();renderDraft();
+      const differs=!sameRows(merged.annotations,server.annotations,"id")
+        ||!sameRows(merged.cut_candidate_decisions,server.cut_candidate_decisions,"candidate_id");
+      if(differs&&(merged.annotations.length||merged.cut_candidate_decisions.length)) {
+        const result=await cloudRequest("POST",reviewPayload());
+        setCloudStatus(`Borrador conciliado y sincronizado en D1 · ${result.updated_at}.`,{saved:true});
+      } else setCloudStatus(remote.updated_at?`Borrador recuperado de D1 · ${remote.updated_at}.`:"D1 conectada; aún no hay decisiones guardadas para esta revisión.",{saved:Boolean(remote.updated_at)});
+    } catch(error) {
+      setCloudStatus(error.login?"D1 está protegida. Inicia sesión con Cloudflare Access para recuperar o sincronizar." : `La copia local sigue disponible; D1 no respondió: ${error.message}`,{login:Boolean(error.login)});
+    }
+  });
+}
 function persistDraft() {
   if (!state.manifest) return;
-  try { saveReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision,state.draft); renderDraft(); }
+  try { saveReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision,state.draft); renderDraft(); queueCloudWrite(); }
   catch (error) { $("#draft-status").textContent=`No se pudo guardar en este navegador: ${error.message}`; }
 }
 function renderDraft() {
@@ -133,7 +210,7 @@ function previewFrame(row){
   video.pause();video.currentTime=t;const capture=()=>{try{const canvas=document.createElement("canvas");canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext("2d").drawImage(video,0,0);canvas.toBlob((blob)=>{if(!blob)return; if(state.frameUrl)URL.revokeObjectURL(state.frameUrl);state.frameUrl=URL.createObjectURL(blob);out.innerHTML=`<img class="mm-frame-preview" alt="Fotograma del archivo local en ${fmt(t)}" src="${state.frameUrl}"><p class="mm-result-state">Fotograma generado en el navegador · ${fmt(t)} · no se guarda ni se envía.</p>`;},"image/jpeg",.86);}catch{out.innerHTML=`<p class="mm-warning">No se pudo capturar el fotograma en este navegador.</p>`;}};
   video.addEventListener("seeked",capture,{once:true});
 }
-function recover(){state.draft=loadReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision);renderCandidates();renderDraft();setStatus(`Borrador recuperado: ${state.draft.cut_candidate_decisions.length} decisión(es).`);}
+function recover(){state.draft=loadReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision);renderCandidates();renderDraft();loadCloudDraft();setStatus(`Borrador local recuperado: ${state.draft.cut_candidate_decisions.length} decisión(es).`);}
 function renderProject(source){
   state.source=source;state.project=projectOf(source);state.manifest=projectExportToMultimodalReviewManifest(source);
   const revision=state.manifest.revision;
@@ -142,10 +219,17 @@ function renderProject(source){
   $("#source-meta").textContent=`Proyecto ${state.manifest.project_id||"(sin ID)"} · revisión ${revision??"sin versión"} · importado desde archivo local · no hay conexión de escritura al MCP.`;
   renderCounts();state.draft=loadReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision);renderTree();renderCandidates();renderDraft();
   if(state.project.cut_candidates?.length!==state.manifest.cut_candidates.length)setStatus("Se eliminaron IDs de candidatos duplicados durante la vista de revisión; el archivo original no se modificó.");else setStatus("Exportación leída. Verifica la revisión y selecciona el medio local antes de guardar cotejos.");
+  setCloudStatus("Comprobando acceso protegido a D1…");loadCloudDraft();
   if(state.media)loadMedia(state.media);
 }
 $("#manifest-file").addEventListener("change",async(event)=>{const file=event.target.files?.[0];event.target.value="";if(!file)return;try{const parsed=JSON.parse(await file.text());renderProject(parsed);}catch(error){$("#review-app").hidden=true;setStatus(`No se pudo importar este JSON: ${error.message}. Se espera una exportación del proyecto del plugin.`,true);}});
 $("#media-file").addEventListener("change",(event)=>{const file=event.target.files?.[0];event.target.value="";loadMedia(file);});
 $("#recover-draft").addEventListener("click",recover);
+$("#delete-cloud-draft").addEventListener("click",async()=>{
+  if(!state.manifest||!window.confirm("¿Eliminar de D1 la copia remota de las decisiones de este proyecto y revisión? La copia local no se borrará."))return;
+  try{await cloudRequest("DELETE");setCloudStatus("Copia remota eliminada. La copia local sigue disponible y no se ha borrado.");}
+  catch(error){setCloudStatus(error.login?"Inicia sesión con Cloudflare Access para borrar la copia remota.":`No se pudo eliminar la copia remota: ${error.message}`,{login:Boolean(error.login),saved:true});}
+});
 $("#export-review").addEventListener("click",()=>{if(!state.manifest)return;const annotations=state.draft.annotations;const result=createReviewExport(state.manifest,state.source,annotations,state.draft.cut_candidate_decisions);const blob=new Blob([JSON.stringify(result,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`revision-${(state.manifest.project_id||"proyecto").replace(/[^a-z0-9_-]/gi,"-")}-r${state.manifest.revision??"sin-version"}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setStatus("Revisión exportada como archivo separado. La fuente del plugin sigue intacta.");});
 $("#no-script").hidden=true;
+
