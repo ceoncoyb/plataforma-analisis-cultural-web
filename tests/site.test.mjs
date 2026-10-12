@@ -15,6 +15,9 @@ test("product site presents the corpus lab as cross-disciplinary and configurabl
   assert.match(home, /Conecta cada hallazgo con su evidencia/);
   assert.match(home, /Investigación de experiencia \(UX\)/);
   assert.match(home, /Estudios culturales y de medios/);
+  assert.match(home, /Abrir el laboratorio/);
+  assert.match(home, /Reproduce video y marca el tiempo exacto/);
+  assert.match(home, /previsualiza video y otros medios locales/);
   assert.match(demo, /Tu producto, tu corpus, tu método/);
   assert.match(demo, /El caso audiovisual es un formato de trabajo, no un molde/);
   for (const use of ["Producto / servicio", "Investigación UX", "Cultura y medios", "Políticas / sistemas", "Estudio audiovisual"]) assert.ok(demo.includes(use), `missing adaptable profile ${use}`);
@@ -38,7 +41,9 @@ test("corpus lab loads real local video and supports synchronized interval contr
 
 test("lab storage and exports include project scope, corpus annotations and explicit local-only boundaries", async () => {
   const demo = await read("demo/index.html");
+  const privacy = await read("privacy/index.html");
   const script = await read("assets/site.js");
+  assert.match(privacy, /Los medios seleccionados \(video, audio, imágenes y documentos\) se previsualizan desde memoria local/);
   assert.match(demo, /Los archivos permanecen en este navegador y no se suben/);
   assert.match(demo, /No es la D1 ni escribe en el plugin conectado/);
   assert.match(demo, /id="import-project"/);
