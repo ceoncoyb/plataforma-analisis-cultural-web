@@ -118,6 +118,9 @@ test("audiovisual review route imports the plugin export and keeps its MCP bridg
   assert.match(script, /createReviewExport/);
   assert.match(script, /URL\.createObjectURL\(file\)/);
   assert.match(script, /drawImage\(video,0,0\)/);
+  assert.match(script, /Usar posición actual/);
+  assert.match(script, /Ir al tiempo propuesto/);
+  assert.match(await read("_headers"), /media-src 'self' blob:/);
   assert.match(script, /No se pudo importar este JSON/);
   assert.doesNotMatch(script, /fetch\s*\(/);
   assert.doesNotMatch(script, /\.put\s*\(/);
