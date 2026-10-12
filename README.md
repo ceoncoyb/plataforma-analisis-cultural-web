@@ -2,6 +2,10 @@
 
 Landing, sandbox didáctico y documentación pública del producto. Este repositorio no contiene el MCP privado, credenciales, datos de proyectos, corpus, base D1 ni código de QA57/Zotero.
 
+> **Abrir el producto:** [web pública](https://plataforma-analisis-cultural-web.pages.dev/) · [probar la demo sin cuenta](https://plataforma-analisis-cultural-web.pages.dev/demo/).
+>
+> El conector MCP de ChatGPT continúa en piloto privado; la demo pública no lo instala ni escribe en sus proyectos.
+
 ## Producto
 
 La Plataforma organiza estudios con perfiles configurables por proyecto, fuentes y evidencia localizables, lecturas contrastables, decisiones humanas y auditoría de cobertura. Su ámbito incluye investigación cultural y de medios, UX, investigación cualitativa, servicios/sistemas y perfiles propios. El laboratorio audiovisual es un piloto especializado dentro del producto.
