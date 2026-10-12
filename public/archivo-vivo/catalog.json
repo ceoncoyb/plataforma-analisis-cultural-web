@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "ia-con-criterio",
+    "category": "educacion",
+    "tag": "EDUCACIÓN · IA",
+    "cover": "01",
+    "minutes": 4,
+    "video_index": "01",
+    "status": "public_preview",
+    "title": "Aprender con IA sin entregar el pensamiento",
+    "summary": "Un método de seis decisiones para usar asistentes de IA sin sacrificar comprensión, autoría ni evaluación.",
+    "preview": [
+      "Una tecnología puede acelerar una respuesta sin mejorar el aprendizaje. La pregunta pedagógica no es si un estudiante utilizó IA, sino qué parte de la tarea intelectual sigue siendo suya y cómo puede demostrarlo.",
+      "Una práctica útil separa seis momentos: formular la pregunta, proponer una respuesta propia, contrastar con el asistente, localizar errores, reconstruir el argumento sin copiar y explicar qué cambió. La IA entra en el contraste, no sustituye la primera elaboración.",
+      "Para un profesor, la evidencia más valiosa no es únicamente el producto final: es una breve defensa oral, una bitácora de cambios y una tarea de transferencia a un caso nuevo. La guía ampliada, aún en revisión editorial, desarrolla rúbricas y ejercicios adaptables por nivel."
+    ]
+  },
+  {
+    "slug": "escucha-comparativa",
+    "category": "audiovisual",
+    "tag": "ANÁLISIS · SONIDO E IMAGEN",
+    "cover": "02",
+    "minutes": 5,
+    "video_index": "02",
+    "status": "public_preview",
+    "title": "Escuchar una imagen: notas para un análisis comparativo",
+    "summary": "Del registro del plano al recorrido temporal: cómo observar sonido y montaje antes de apresurar interpretaciones.",
+    "preview": [
+      "Escuchar una secuencia audiovisual es describir relaciones, no superponer adjetivos. Antes de definir qué «significa» una escena, conviene registrar eventos que puedan localizarse y discutirse: aparición y desaparición de una fuente, continuidad, cambio de escala, acento, silencio, duración y desfase.",
+      "Una primera pasada atiende solo a la pista sonora; la segunda, únicamente a la imagen; la tercera coteja sus coincidencias y fricciones. Ese movimiento evita convertir la interpretación en un sustituto de la observación.",
+      "El método completo se organiza por ventanas temporales, hipótesis revisables y marcas de evidencia. Esta publicación es una introducción original: no contiene segmentos ni inferencias inéditas de tesis, investigaciones privadas o corpus sin permisos."
+    ]
+  },
+  {
+    "slug": "produccion-trazable",
+    "category": "produccion",
+    "tag": "OFICIO · PRODUCCIÓN",
+    "cover": "03",
+    "minutes": 4,
+    "video_index": "03",
+    "status": "public_preview",
+    "title": "Del guion a la pieza: una producción que deja huella",
+    "summary": "Un flujo de trabajo audiovisual ligero que conserva decisiones creativas, versiones y derechos.",
+    "preview": [
+      "La velocidad creativa se pierde cuando un proyecto ya no sabe distinguir su archivo original de una versión derivada. Una estructura mínima relaciona fuente, hipótesis de edición, guion técnico, exportaciones y fecha de revisión.",
+      "Cada asset debe conservar origen, titularidad, tipo de autorización, operaciones realizadas y destino previsto. Un material puede ser apto para análisis privado y no para distribución comercial; esa diferencia tiene que sobrevivir a cualquier automatización.",
+      "La regla operativa es simple: automatizar transformaciones verificables sin automatizar la autorización. El dossier ampliado, todavía no comercializado, incorpora listas de control de sonido, montaje, subtitulado y entrega a cliente."
+    ]
+  }
+]
