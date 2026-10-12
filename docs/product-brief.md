@@ -17,9 +17,9 @@ La Plataforma es una capa de trabajo para investigaciones aplicadas que necesita
 ## MVP de concurso / capital semilla
 
 1. **Entrada:** web de producto que explica el problema y distingue funciones activas, piloto y roadmap.
-2. **Demostración:** sandbox ejecutable sin cuenta con borrador local, unidades rastreables y descarga JSON.
+2. **Demostración:** laboratorio ejecutable sin cuenta, adaptable a distintos productos/campos, con carga y reproducción de medios locales, anotación de intervalos de video, unidades rastreables y exportación JSON.
 3. **Núcleo MCP actual:** alta/lectura/edición de proyectos, registro de procedencia, unidades, evidencia y lecturas, relaciones revisables, exportación y auditoría estructural; actualmente privado.
-4. **Prueba especializada:** un laboratorio audiovisual que deriva del modelo de proyectos y recorre unidades/secuencias e intervalos de cada caso; no se extrapola como patrón de otras áreas.
+4. **Flujo transversal:** el video aporta controles de tiempo y fotogramas cuando el material lo requiere; los campos y métodos se configuran por proyecto, sin convertir un piloto audiovisual en patrón obligatorio.
 5. **Validación:** pruebas moderadas de primera tarea, finalización del sandbox, claridad de límites, exportación y necesidad de colaboración. No usar cifras o testimonios hasta medirlos.
 
 ## Funnel
