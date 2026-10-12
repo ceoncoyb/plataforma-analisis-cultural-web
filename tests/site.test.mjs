@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { createHash } from "node:crypto";
+import { projectExportToMultimodalReviewManifest, validateCandidateDecision, loadReviewDraft, saveReviewDraft, createReviewExport } from "../public/laboratorio/multimodal-review.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (path) => readFile(join(root, "public", path), "utf8");
@@ -84,7 +85,7 @@ test("lab storage and exports include project scope, corpus annotations and expl
 });
 
 test("all product routes expose SEO metadata, navigation and privacy", async () => {
-  const routes = ["index.html", "demo/index.html", "plans/index.html", "privacy/index.html"];
+  const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "plans/index.html", "privacy/index.html"];
   for (const route of routes) {
     const html = await read(route);
     assert.match(html, /<title>/, route);
@@ -106,10 +107,75 @@ test("public pages contain no third-party trackers or invented app install links
   }
 });
 
+test("audiovisual review route imports the plugin export and keeps its MCP bridge and local-media boundary", async () => {
+  const html = await read("laboratorio/index.html");
+  const script = await read("laboratorio/lab.js");
+  assert.match(html, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
+  assert.match(html, /type="module" src="\/laboratorio\/lab\.js"/);
+  assert.match(html, /proyecto fuente queda en solo lectura/i);
+  assert.match(html, /no se envía/i);
+  assert.match(script, /projectExportToMultimodalReviewManifest/);
+  assert.match(script, /createReviewExport/);
+  assert.match(script, /URL\.createObjectURL\(file\)/);
+  assert.match(script, /drawImage\(video,0,0\)/);
+  assert.match(script, /No se pudo importar este JSON/);
+  assert.doesNotMatch(script, /fetch\s*\(/);
+  assert.doesNotMatch(script, /\.put\s*\(/);
+});
+
+test("plugin export adaptation preserves IDs, deduplicates canonical collections, and permits projects without subsequences", async () => {
+  const source = { format: "export_project", revision: 174, project: {
+    id: "study-01", name: "Corpus", units: [
+      { id: "seq-A", type: "sequence", start: "00:00", end: "00:20" },
+      { id: "sub-A", type: "subsequence", sequence_id: "seq-A", start: "00:00", end: "00:20" },
+      { id: "int-1", type: "interval", parent_id: "seq-A", start: "00:01", end: "00:03", locator: "corte 1", origin: "registro" },
+      { id: "frame-1", type: "frame", parent_id: "int-1", timestamp: "00:01.5" },
+    ], subsequences: [{ id: "sub-A", sequence_id: "seq-A", start: "00:00", end: "00:20" }, { id: "sub-B", sequence_id: "seq-A", start: "00:02", end: "00:12" }],
+    frames: [{ id: "frame-1", parent_id: "int-1", timestamp: "00:01.5" }, { id: "frame-2", sequence_id: "seq-A", timestamp: "00:08" }],
+    cut_candidates: [{ id: "cut-1", interval_id: "int-1", timestamp: "00:01.5" }, { id: "cut-1", interval_id: "int-1", timestamp: "00:01.5" }],
+    evidence: [{ id: "ev-1", unit_id: "int-1", modality: "visual", locator: "00:01–00:03", content: "Cambio" }], interval_analyses: [{ id: "an-1", unit_id: "int-1", observable_visual: "Cambio de plano" }],
+  }};
+  const m = projectExportToMultimodalReviewManifest(source);
+  assert.equal(m.project_id, "study-01"); assert.equal(m.revision, 174);
+  assert.deepEqual(m.sequences.map((x) => x.id), ["seq-A"]);
+  assert.deepEqual(m.segments.map((x) => x.id), ["sub-A", "sub-B"]);
+  assert.deepEqual(m.intervals.map((x) => x.id), ["int-1"]);
+  assert.deepEqual(m.frames.map((x) => x.id), ["frame-1", "frame-2"]);
+  assert.equal(m.cut_candidates.length, 1);
+  assert.equal(m.intervals[0].evidence[0].id, "ev-1");
+  assert.equal(m.intervals[0].analysis.id, "an-1");
+  assert.equal(m.intervals[0].locator, "corte 1");
+  assert.equal(source.project.cut_candidates.length, 2, "the imported object stays unchanged");
+
+  const noSegments = projectExportToMultimodalReviewManifest({ project: { id: "plain", units: [
+    { id: "only-seq", type: "sequence", start: 0, end: 30 },
+    { id: "direct-int", type: "interval", parent_id: "only-seq", start: 1, end: 2 },
+  ] } });
+  assert.equal(noSegments.sequences[0].direct_interval_ids[0], "direct-int");
+  assert.equal(noSegments.segments.length, 0);
+});
+
+test("candidate decisions enforce local media, SHA identity, and inclusive timing tolerance; drafts recover and export separately", async () => {
+  const validBase = { mediaAvailable: true, mediaIdentity: "verified", shaRequired: true, status: "confirmed", proposed: 1.5 };
+  assert.equal(validateCandidateDecision({ ...validBase, observed: 1.54 }).ok, true);
+  assert.equal(validateCandidateDecision({ ...validBase, observed: 1.54001 }).ok, false);
+  assert.equal(validateCandidateDecision({ ...validBase, observed: 1.5, mediaIdentity: "mismatch" }).ok, false);
+  assert.equal(validateCandidateDecision({ ...validBase, observed: 1.5, mediaAvailable: false }).ok, false);
+  assert.equal(validateCandidateDecision({ ...validBase, observed: 1.5, status: "doubtful", mediaIdentity: "verified" }).ok, true);
+  const memory = new Map(); const storage = { getItem: (k) => memory.get(k) || null, setItem: (k,v) => memory.set(k,v) };
+  const draft = { annotations: [{ id: "note-1" }], cut_candidate_decisions: [{ candidate_id: "cut-1", status: "confirmed", project_revision: 174 }] };
+  saveReviewDraft(storage,"study-01",174,draft);
+  assert.deepEqual(loadReviewDraft(storage,"study-01",174),draft);
+  assert.deepEqual(loadReviewDraft(storage,"study-01",173),{annotations:[],cut_candidate_decisions:[]});
+  const out=createReviewExport({project_id:"study-01",revision:174}, { project:{id:"study-01"} }, draft.annotations,draft.cut_candidate_decisions);
+  assert.equal(out.read_only_source,true); assert.equal(out.status,"human_review_unratified");
+  assert.equal(out.cut_candidate_decisions[0].candidate_id,"cut-1");
+});
+
 test("project build fingerprints the interactive asset and rewrites every route", async () => {
   const script = await read("assets/site.js");
   const fingerprint = createHash("sha256").update(script).digest("hex").slice(0, 12);
-  const routes = ["index.html", "demo/index.html", "plans/index.html", "privacy/index.html"];
+  const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "plans/index.html", "privacy/index.html"];
   for (const route of routes) {
     const html = await readFile(join(root, "dist", route), "utf8");
     assert.match(html, new RegExp(`/assets/site\\.${fingerprint}\\.js`), route);
