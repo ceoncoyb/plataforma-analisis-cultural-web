@@ -52,3 +52,9 @@ Son hipótesis de trabajo. No hay precios, suscripciones, checkout, cuenta multi
 - Mobile-first, navegación por teclado, etiquetas accesibles, contraste y movimiento reducido.
 - La interfaz no simula analítica, popularidad, usuarios, exactitud ni progreso que no se haya medido.
 - Los datos solo se usan en el contexto declarado y tienen una ruta visible de exportación y borrado.
+
+## Posicionamiento y comunicación
+
+La frase principal describe primero el resultado comprobable: cada hallazgo conserva el vínculo con su evidencia y cada estudio configura sus criterios. Los ejemplos de UX, entrevistas, medios y servicios muestran el alcance sin afirmar que todos los campos usan el mismo método. La ficha local es el primer paso del funnel y debe identificarse como demo, no como una integración con el MCP.
+
+Las reglas de mensaje, los referentes consultados y las hipótesis pendientes están en [Posicionamiento y estrategia de contenido](positioning-and-content-strategy.md). El lenguaje se formula para personas usuarias, no como jerga del equipo: nombrar el trabajo, mostrar el flujo y conducir a una acción concreta.

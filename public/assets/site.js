@@ -14,6 +14,9 @@ if (form) {
   try {
     units = JSON.parse(localStorage.getItem(storageKey) || "[]");
     if (!Array.isArray(units)) units = [];
+    units = units.filter((unit) => unit && typeof unit === "object"
+      && typeof unit.label === "string" && typeof unit.locator === "string"
+      && typeof unit.modality === "string");
   } catch { units = []; }
 
   function renderUnits() {
@@ -57,6 +60,10 @@ if (form) {
     if (!label || !locator) {
       result.hidden = false;
       result.querySelector("p").textContent = "Completa el nombre de la unidad y su localizador para añadirla.";
+      result.removeAttribute("data-json");
+      result.querySelector("pre").textContent = "";
+      result.querySelector("p").setAttribute("tabindex", "-1");
+      result.querySelector("p").focus();
       return;
     }
     units.push({ id: "UNIT-" + crypto.randomUUID().slice(0, 8).toUpperCase(), label, locator, modality });
@@ -73,6 +80,10 @@ if (form) {
     if (!title || !question) {
       result.hidden = false;
       result.querySelector("p").textContent = "Añade el nombre del estudio y su pregunta para generar la ficha.";
+      result.removeAttribute("data-json");
+      result.querySelector("pre").textContent = "";
+      result.querySelector("p").setAttribute("tabindex", "-1");
+      result.querySelector("p").focus();
       return;
     }
     const brief = {
@@ -90,15 +101,25 @@ if (form) {
   });
 
   document.querySelector("#download-brief").addEventListener("click", () => {
-    if (!result.dataset.json) { document.querySelector("#build-brief").click(); }
+    const title = document.querySelector("#study-title").value.trim();
+    const question = document.querySelector("#study-question").value.trim();
+    if (!title || !question) {
+      result.hidden = false;
+      result.querySelector("p").textContent = "Completa el nombre y la pregunta, y genera la ficha antes de descargar.";
+      result.removeAttribute("data-json");
+      result.querySelector("pre").textContent = "";
+      document.querySelector("#study-title").focus();
+      return;
+    }
+    if (!result.dataset.json) document.querySelector("#build-brief").click();
     if (!result.dataset.json) return;
-    const blob = new Blob([result.dataset.json], { type: "application/json" });
+    const blob = new Blob([result.dataset.json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = "ficha-de-estudio-demo.json";
     link.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   document.querySelector("#clear-demo").addEventListener("click", () => {
     units = []; persist(); renderUnits();
