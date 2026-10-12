@@ -50,18 +50,19 @@ function candidatesForInterval(intervalId) { return state.manifest.cut_candidate
 function renderTree() {
   const root=$("#corpus-tree"), m=state.manifest;
   const byId=new Map([...m.sequences,...m.segments,...m.intervals,...m.frames].map((u)=>[String(u.id),u]));
+  const renderedFrameIds=new Set();
   const button=(kind,row,depth=0)=>`<button type="button" class="${depth===1?"mm-tree-child":depth>1?"mm-tree-leaf":""}" data-select-kind="${kind}" data-select-id="${esc(row.id)}" ${state.selected?.id===String(row.id)?'aria-current="true"':''}><span>${esc(row.label||row.title||row.id)}</span><small>${esc(row.id)} · ${fmt(row.start)}${row.end!=null&&String(row.end)!==String(row.start)?`–${fmt(row.end)}`:""}</small></button>`;
   const html=[];
   for (const seq of m.sequences) {
     html.push(`<div class="mm-tree-group">Secuencia</div>`,button("sequence",seq));
-    for (const segId of seq.segment_ids||[]) { const seg=byId.get(String(segId)); if(!seg)continue;html.push(button("segment",seg,1)); for(const iid of seg.interval_ids||[]){const interval=byId.get(String(iid));if(interval){html.push(button("interval",interval,2)); for(const f of m.frames.filter(x=>String(first(x.interval_id,x.unit_id,x.parent_id,""))===String(interval.id)))html.push(button("frame",f,2));}} }
-    for (const iid of seq.direct_interval_ids||[]) { const interval=byId.get(String(iid));if(interval){html.push(button("interval",interval,1)); for(const f of m.frames.filter(x=>String(first(x.interval_id,x.unit_id,x.parent_id,""))===String(interval.id)))html.push(button("frame",f,2));} }
+    for (const segId of seq.segment_ids||[]) { const seg=byId.get(String(segId)); if(!seg)continue;html.push(button("segment",seg,1)); for(const iid of seg.interval_ids||[]){const interval=byId.get(String(iid));if(interval){html.push(button("interval",interval,2)); for(const f of m.frames.filter(x=>String(first(x.interval_id,x.unit_id,x.parent_id,""))===String(interval.id))){html.push(button("frame",f,2));renderedFrameIds.add(String(f.id));}}} }
+    for (const iid of seq.direct_interval_ids||[]) { const interval=byId.get(String(iid));if(interval){html.push(button("interval",interval,1)); for(const f of m.frames.filter(x=>String(first(x.interval_id,x.unit_id,x.parent_id,""))===String(interval.id))){html.push(button("frame",f,2));renderedFrameIds.add(String(f.id));}} }
   }
   const represented=new Set(); for(const x of [...m.sequences,...m.segments,...m.intervals])represented.add(String(x.id));
-  const unassigned=[...m.segments,...m.intervals,...m.frames].filter((x)=>!represented.has(String(x.id)) || (x.hierarchy_method==="unassigned"));
+  const unassigned=[...m.segments,...m.intervals,...m.frames].filter((x)=>x.type==="frame"?!renderedFrameIds.has(String(x.id)):!represented.has(String(x.id)) || (x.hierarchy_method==="unassigned"));
   if (!html.length) html.push(`<p class="mm-tree-empty">Este proyecto no contiene secuencias. Los registros disponibles aparecen abajo y pueden revisarse sin una jerarquía impuesta.</p>`);
   if (unassigned.length) html.push(`<div class="mm-tree-group">Sin jerarquía derivable</div>`,...unassigned.map((x)=>button(x.type||"unit",x,1)));
-  if (!m.sequences.length) html.push(...m.intervals.map((x)=>button("interval",x,1)),...m.frames.map((x)=>button("frame",x,1)));
+  if (!m.sequences.length) html.push(...m.intervals.map((x)=>button("interval",x,1)));
   root.innerHTML=html.join("")||`<p class="mm-tree-empty">Sin unidades navegables.</p>`;
   root.querySelectorAll("[data-select-id]").forEach((b)=>b.addEventListener("click",()=>selectRecord(b.dataset.selectKind,b.dataset.selectId)));
   $("#tree-total").textContent=String(m.sequences.length+m.segments.length+m.intervals.length+m.frames.length);
