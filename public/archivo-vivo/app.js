@@ -24,8 +24,7 @@ function configure(){
    for(const t of ["Abre Plin o Yape en tu banco y selecciona enviar por número.","Introduce el número mostrado y comprueba el nombre real del destinatario antes de pagar.","Introduce exactamente el importe de tu pedido y un concepto reconocible.","Conserva el identificador bancario. La entrega requiere confirmación del abono por el vendedor."]){let li=document.createElement("li");li.textContent=t;ol.append(li)}
    el.append(ol);
  }
- $("videoCards").innerHTML=catalog.filter(x=>x.status==="public_preview").map(o=>'<a href="#biblioteca" data-video="'+esc(o.slug)+'">Guion '+esc(o.video_index)+' ↗</a>').join("");
- document.querySelectorAll("[data-video]").forEach(a=>a.addEventListener("click",()=>read(a.dataset.video)))
+ $("videoCards").innerHTML=catalog.filter(x=>x.status==="public_preview").map(o=>'<a href="assets/'+esc(o.slug)+'-teaser.mp4" target="_blank" rel="noopener noreferrer">Ver avance '+esc(o.video_index)+' ▶</a>').join("");
 }
 function makeTicket(){
  const kind=$("concept").value;
