@@ -4,6 +4,8 @@
 
 **Propuesta:** un espacio de trabajo para organizar investigaciones de distintos campos y seguir cada hallazgo hasta la fuente, la unidad, la evidencia y la decisión del equipo.
 
+**Arquitectura de marca para el MVP:** usar **Plataforma** como nombre breve de interfaz y “investigación trazable” como descriptor; conservar “Plataforma de análisis cultural” en la identidad técnica existente del conector ChatGPT. El símbolo de la portada representa una fuente que llega a la evidencia y puede abrir lecturas alternativas. La elección de un nombre registrable queda pendiente de búsqueda fonética y marcaria en los mercados objetivo. La revisión preliminar en web mostró coincidencias directas para alternativas obvias como Hilo, Trama y Traza; no se afirma disponibilidad legal de ninguna marca.
+
 **Trabajo principal que se quiere resolver:** cuando una persona vuelve a un hallazgo, necesita localizar el material que lo sostiene, entender qué alternativas se consideraron y reconocer qué parte sigue abierta.
 
 **Diferenciador verificable en el MCP privado:** conserva relaciones entre proyecto, fuente, unidad, evidencia, lectura y decisión; cada proyecto define su propio perfil. El modelo propone análisis desde ChatGPT cuando corresponde; el conector registra y valida estructura. Una auditoría de cobertura no certifica la verdad o calidad de una interpretación.
@@ -22,10 +24,11 @@
 
 ## Embudo de validación
 
-1. **Entender:** en segundos, identificar a quién ayuda y qué relación conserva.
-2. **Ver:** recorrer un ejemplo explícito de fuente → unidad → evidencia → lectura → decisión.
-3. **Probar:** armar una ficha, añadir una unidad/localizador y exportar el JSON en el mismo navegador.
-4. **Validar:** solicitar necesidades mediante GitHub Issues; no prometer acompañamiento, lista de espera ni respuesta comercial.
+1. **Entender:** en segundos, identificar el trabajo que resuelve: conservar el contexto entre hallazgo, fuente y decisión.
+2. **Ver:** reproducir una guía accesible de 16 segundos; muestra fuente → localizador → observación → lecturas.
+3. **Probar:** cargar un ejemplo sintético en un clic o seleccionar material propio; la demo separa el ejemplo del proyecto local.
+4. **Continuar:** revisar, anotar, exportar y volver al inicio con rutas de navegación claras.
+5. **Validar:** solicitar necesidades mediante GitHub Issues; no prometer acompañamiento, lista de espera ni respuesta comercial.
 5. **Activar después:** ofrecer conexión pública solo cuando exista autenticación por persona, aislamiento entre espacios y privacidad revisada.
 6. **Cobrar después de validar:** definir planes a partir de costos, colaboración, almacenamiento y soporte medidos. No habilitar checkout ni anunciar precios ficticios.
 
@@ -36,6 +39,7 @@
 - Un perfil por proyecto resulta más útil que una plantilla disciplinaria general.
 - La ficha JSON ayuda a entender la estructura, pero por sí sola no demuestra el valor del MCP.
 - El trabajo audiovisual es un piloto especializado; su detalle de intervalos, imagen y sonido solo corresponde a proyectos que lo necesiten.
+- Un ejemplo listo de primera visita reduce el coste de empezar sin sustituir ni sobrescribir el proyecto propio.
 
 Validar estas hipótesis con tareas observadas, entrevistas de problema y pruebas de comprensión. No atribuir tasas de conversión, ahorro, impacto o satisfacción hasta medirlas.
 
