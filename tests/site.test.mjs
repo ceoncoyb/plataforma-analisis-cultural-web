@@ -137,14 +137,16 @@ test("sandbox adds, exports, downloads, clears, and rejects incomplete studies",
 });
 
 
+
 test("build fingerprints the immutable interactive asset and rewrites every route", async () => {
   const script = await read("assets/site.js");
   const fingerprint = createHash("sha256").update(script).digest("hex").slice(0, 12);
+  const expected = `/assets/site.${fingerprint}.js`;
   const routes = ["index.html", "demo/index.html", "plans/index.html", "privacy/index.html"];
   for (const route of routes) {
     const html = await readFile(join(root, "dist", route), "utf8");
-    assert.match(html, new RegExp(`/assets/site\\\\.${fingerprint}\\\\.js`), route);
-    assert.doesNotMatch(html, /\\/assets\\/site\\.js(?:["?])/);
+    assert.ok(html.includes(`src="${expected}"`), route);
+    assert.ok(!html.includes('src="/assets/site.js"'), route);
   }
   await access(join(root, "dist", `assets/site.${fingerprint}.js`));
   await assert.rejects(access(join(root, "dist", "assets/site.js")));
