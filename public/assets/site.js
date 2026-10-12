@@ -63,10 +63,12 @@ if (lab) {
       sourceForMedia.set(mediaName, id);
       return { id, origin: "user-selected-local-file", provider: "local-browser", tool_name: "corpus-lab-file-input", title: mediaName, external_item_id: `local-file:${mediaName}`, actor: "Usuario", reason: "Material seleccionado en el navegador; el archivo binario no forma parte de esta transferencia.", local_only: true };
     });
+    const syntheticSourceId = state.units.some((unit) => unit.syntheticExample === true) ? "local-synthetic-example" : null;
+    if (syntheticSourceId) sources.push({ id: syntheticSourceId, origin: "synthetic-demo-example", provider: "public-demo", tool_name: "guided-sample", title: "Caso sintético de continuidad de una tarea", external_item_id: "synthetic-case:task-continuity", actor: "Demostración", reason: "Caso didáctico ficticio; no procede de participantes ni de un producto real." });
     const units = state.units.map((unit, index) => {
       const id = safe(unit.id || unit.unit_id, `unit-${index + 1}`);
       const type = safe(unit.modality || unit.channel, "corpus");
-      const sourceId = sourceForMedia.get(safe(unit.mediaName).trim());
+      const sourceId = sourceForMedia.get(safe(unit.mediaName).trim()) || (unit.syntheticExample ? syntheticSourceId : null);
       const observation = safe(unit.description).trim();
       const locator = safe(unit.locator).trim();
       const start = Number.isFinite(unit.startSeconds) ? timecode(unit.startSeconds) : "";
@@ -357,7 +359,7 @@ if (lab) {
     mediaFiles = []; activeIndex = -1; activeUnitId = null; objectUrls = []; rangeStart = null; rangeEnd = null;
     $("#active-media-title").textContent = "Carga o selecciona un material"; emptyViewer();
     storageKey = sampleStorageKey;
-    const sampleUnit = { id: "SAMPLE-01", label: "El filtro se pierde al volver al inicio", channel: "Interacción / uso", locator: "Escenario sintético · paso 4 de 6", tags: "continuidad, estado de interfaz", description: "Ejemplo ficticio: al abrir el mapa y volver al inicio, el filtro elegido ya no aparece.", reading: "Hipótesis por contrastar: ¿se perdió el estado o la persona esperaba otra ruta?", mediaName: "", startSeconds: null, endSeconds: null, modality: "manual", origin: "annotation", updatedAt: new Date().toISOString() };
+    const sampleUnit = { id: "SAMPLE-01", label: "El filtro se pierde al volver al inicio", channel: "Interacción / uso", locator: "Escenario sintético · paso 4 de 6", tags: "continuidad, estado de interfaz", description: "Ejemplo ficticio: al abrir el mapa y volver al inicio, el filtro elegido ya no aparece.", reading: "Hipótesis por contrastar: ¿se perdió el estado o la persona esperaba otra ruta?", mediaName: "", startSeconds: null, endSeconds: null, modality: "manual", origin: "annotation", syntheticExample: true, updatedAt: new Date().toISOString() };
     state = { project: { title: "Ejemplo · recorrido de una tarea", field: "Investigación UX", question: "¿En qué paso se pierde la continuidad de una tarea?" }, units: [sampleUnit] };
     sourceDocument = null; activeUnitId = null; activeIndex = -1; rangeStart = null; rangeEnd = null;
     syncProjectFields(); renderUnits(); renderMediaList(); persist(); selectUnit(sampleUnit);
