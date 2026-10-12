@@ -6,7 +6,7 @@ Landing, sandbox didáctico y documentación pública del producto. Este reposit
 
 La Plataforma organiza estudios con perfiles configurables por proyecto, fuentes y evidencia localizables, lecturas contrastables, decisiones humanas y auditoría de cobertura. Su ámbito incluye investigación cultural y de medios, UX, investigación cualitativa, servicios/sistemas y perfiles propios. El laboratorio audiovisual es un piloto especializado dentro del producto.
 
-El sandbox funciona en el navegador. Mantiene las unidades en `localStorage`, permite exportar una ficha didáctica y no invoca el MCP ni genera análisis. El conector ChatGPT actual continúa privado; esta web no altera su identidad, permisos, endpoint, D1 o datos.
+El laboratorio funciona en el navegador para proyectos configurables. Permite importar una ficha JSON, cargar medios locales (incluido video reproducible), marcar intervalos, guardar observaciones y exportar el expediente JSON. Las fichas y anotaciones se guardan en `localStorage`; los medios no se suben ni se incluyen en la exportación. La demo no invoca el MCP ni escribe a D1. El conector ChatGPT actual continúa privado; esta web no altera su identidad, permisos, endpoint, D1 o datos.
 
 ## Ejecutar
 
@@ -37,7 +37,7 @@ Cloudflare Pages publica el dominio `*.pages.dev`, reconstruye al recibir commit
 
 - `public/`: rutas estáticas, SEO básico, sitemap, icono, privacidad y sandbox.
 - `scripts/build.mjs`: copia estática reproducible a `dist/`.
-- `tests/site.test.mjs`: valida límites del producto, privacidad y rutas principales.
+- `tests/site.test.mjs`: valida el flujo transversal, reproducción de medios, límites del producto, privacidad y rutas principales.
 - `docs/product-brief.md`: audiencia, alcance y funnel.
 - `docs/chatgpt-directory-readiness.md`: preparación para distribución pública del plugin.
 
