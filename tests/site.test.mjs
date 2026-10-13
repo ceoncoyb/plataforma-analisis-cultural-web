@@ -148,6 +148,12 @@ test("plugin export adaptation preserves IDs, deduplicates canonical collections
   assert.deepEqual(m.segments.map((x) => x.id), ["sub-A", "sub-B"]);
   assert.deepEqual(m.intervals.map((x) => x.id), ["int-1"]);
   assert.deepEqual(m.frames.map((x) => x.id), ["frame-1", "frame-2"]);
+  assert.equal(m.frames[0].interval_id, "int-1");
+  assert.equal(m.frames[0].sequence_id, "seq-A");
+  assert.equal(m.frames[0].start, "00:01.5");
+  assert.equal(m.frames[0].hierarchy_method, "declared_interval_parent");
+  assert.equal(m.frames[1].start_seconds, 8);
+
   assert.equal(m.cut_candidates.length, 1);
   assert.equal(m.intervals[0].evidence[0].id, "ev-1");
   assert.equal(m.intervals[0].analysis.id, "an-1");
@@ -160,6 +166,21 @@ test("plugin export adaptation preserves IDs, deduplicates canonical collections
   ] } });
   assert.equal(noSegments.sequences[0].direct_interval_ids[0], "direct-int");
   assert.equal(noSegments.segments.length, 0);
+
+  const pluginShape = projectExportToMultimodalReviewManifest({ project: { id: "plugin-shape", units: [
+    { id: "seq-1", type: "sequence", start: "00:00:00", end: "00:09:00" },
+    { id: "28", type: "interval", parent_id: "seq-1", start: "00:08:28.12", end: "00:08:45" },
+    { id: "f13073S4", type: "frame", parent_id: 28,
+      label: "Fotograma 59 · 00:08:42.92 · intervalo 28",
+      locator: "frame nativo 13073 a 25 fps (00:08:42.92); intervalo 28 (00:08:28.12–00:08:45)" },
+  ] } });
+  assert.equal(pluginShape.frames[0].interval_id, "28");
+  assert.equal(pluginShape.frames[0].sequence_id, "seq-1");
+  assert.equal(pluginShape.frames[0].start, "00:08:42.92");
+  assert.equal(pluginShape.frames[0].start_seconds, 522.92);
+  assert.equal(pluginShape.frames[0].hierarchy_method, "declared_interval_parent");
+  assert.equal(pluginShape.frames[0].declared_parent_id, 28, "retain the source parent value");
+
 });
 
 test("candidate decisions enforce local media, SHA identity, and inclusive timing tolerance; drafts recover and export separately", async () => {
