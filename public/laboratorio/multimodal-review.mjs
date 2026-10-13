@@ -92,7 +92,7 @@ export function buildMultimodalReviewManifest(project, { revision = null } = {})
   sourceUnits.push(...extraSegments, ...extraFrames);
   const sequences = sourceUnits.filter((u) => u.type === "sequence").map(asTimeUnit).sort(compare);
   const intervals = sourceUnits.filter((u) => u.type === "interval").map(asTimeUnit).sort(compare);
-  const frames = sourceUnits.filter((u) => u.type === "frame").map(asTimeUnit).sort(compare);
+  const rawFrames = sourceUnits.filter((u) => u.type === "frame");
   // Preserve any other time-bounded units (subsequences, scenes, shots, etc.)
   // as project-defined navigation groups instead of imposing a fixed taxonomy.
   const segments = sourceUnits.filter((u) =>
@@ -144,6 +144,31 @@ export function buildMultimodalReviewManifest(project, { revision = null } = {})
       interval_ids: [], grouping_method: "time_containment",
       grouping_note: "Grupo temporal derivado; no modifica el parent_id declarado y conserva los campos originales." };
   });
+  // Frame records from the analysis plugin may declare an interval ID in parent_id
+  // while carrying their exact timestamp only in the label or locator. Normalize
+  // the display hierarchy without mutating the imported project or its provenance.
+  const frames = rawFrames.map((unit) => {
+    const timeMatch = `${str(unit.label)} ${str(unit.locator)}`.match(/(?:^|[^0-9])(\d{2}:\d{2}:\d{2}(?:\.\d+)?)(?=$|[^0-9])/);
+    const start = unit.start ?? unit.timestamp ?? unit.time ?? unit.start_seconds ?? timeMatch?.[1] ?? null;
+    const end = unit.end ?? unit.end_seconds ?? start;
+    const startSeconds = toSeconds(start);
+    const explicitIntervalId = unit.interval_id ?? unit.interval ?? unit.unit_id ?? unit.parent_id;
+    const declaredInterval = intervals.find((row) => String(row.id) === String(explicitIntervalId));
+    const containingIntervals = intervals.filter((row) => startSeconds != null
+      && row.start_seconds != null && row.end_seconds != null
+      && startSeconds >= row.start_seconds && startSeconds <= row.end_seconds)
+      .sort((a, b) => (a.end_seconds - a.start_seconds) - (b.end_seconds - b.start_seconds));
+    const interval = declaredInterval || containingIntervals[0] || null;
+    const explicitSequence = sequences.find((row) => String(row.id) === String(unit.sequence_id));
+    const parentSequence = interval && sequences.find((row) => String(row.id) === String(interval.parent_id));
+    return { ...asTimeUnit({ ...unit, start, end }),
+      declared_parent_id: unit.parent_id ?? null,
+      interval_id: interval?.id ?? null,
+      sequence_id: explicitSequence?.id ?? parentSequence?.id ?? null,
+      hierarchy_method: declaredInterval ? "declared_interval_parent"
+        : interval ? "time_containment" : explicitSequence ? "declared_sequence" : "unassigned",
+      start, end, start_seconds: startSeconds, end_seconds: toSeconds(end) };
+  }).sort(compare);
   // In ONCOY and other canonical exports, intervals are children of sequences
   // while subsequences are peer units. Derive a single, narrowest temporal
   // group for each interval without overwriting its declared parent.
