@@ -1,6 +1,9 @@
 # Activar la sincronización D1 del laboratorio
 
-El laboratorio conserva una copia local y sincroniza solo decisiones de revisión a D1. El manifiesto fuente y los archivos de video/audio permanecen en el navegador. La API crea `lab_review_drafts` al primer acceso autenticado.
+**Estado de implementación, no de activación:** el laboratorio conserva una copia local. El código dispone de una ruta para sincronizar únicamente decisiones de revisión a D1 tras autenticar correctamente el acceso, pero esa ruta no debe darse por funcional hasta completar las comprobaciones de esta guía. El manifiesto fuente y los archivos de video/audio deben permanecer en el navegador. La creación de `lab_review_drafts` al primer acceso autenticado es un comportamiento previsto que requiere validación real.
+
+**Incidencia operacional abierta:** [#12](https://github.com/ceoncoyb/plataforma-analisis-cultural-web/issues/12) documenta que, en una comprobación del 14/10/2026, `/api/session` respondió HTTP 503 por configuración incompleta de Cloudflare Access. No es evidencia de que D1 o las variables se hayan verificado en este turno, ni determina por sí sola el estado futuro de producción. Si falla alguno de los controles posteriores, mantener D1 sin declararla sincronizada, conservar el borrador local y registrar el error sin exponer datos.
+
 
 ## 1. Confirmar el binding existente
 
