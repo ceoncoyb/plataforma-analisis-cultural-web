@@ -1,4 +1,4 @@
-// Own-origin text-only pilot. No secrets, files, localStorage or automatic requests.
+// Own-origin text-only pilot. No secrets, file access, persistence or automatic requests.
 const form = document.getElementById("chat-form");
 const input = document.getElementById("chat-text");
 const consent = document.getElementById("chat-consent");
