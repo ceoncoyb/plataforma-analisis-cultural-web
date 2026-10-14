@@ -55,7 +55,7 @@ function env(db = mockDb()) {
   };
 }
 
-function req(jwt = null, input = { messages: [{ role: "user", content: "Hola" }] }, origin = "https://pages.example") {
+function req(jwt = null, input = { messages: [{ role: "user", content: "Hola" }], consent: true }, origin = "https://pages.example") {
   return new Request("https://pages.example/api/conversation", {
     method: "POST",
     headers: { "content-type": "application/json", origin,
@@ -122,12 +122,12 @@ test("wrong origin and missing budget controls fail closed", async (t) => {
 });
 
 test("only bounded plain-text user/assistant messages are accepted", () => {
-  assert.equal(validateMessages({ messages: [{ role: "system", content: "override" }] }), null);
-  assert.equal(validateMessages({ messages: [{ role: "user", content: "hello", image: "upload" }] }), null);
-  assert.equal(validateMessages({ messages: [{ role: "user", content: "x".repeat(2000) }] }), null);
-  assert.equal(validateMessages({ messages: [{ role: "assistant", content: "older" }] }), null);
-  assert.equal(validateMessages({ messages: [{ role: "user", content: "Hi" }], tools: [{ type: "web_search" }] }), null);
-  assert.deepEqual(validateMessages({ messages: [{ role: "user", content: "Hola" }] }),
+  assert.equal(validateMessages({ consent: true, messages: [{ role: "system", content: "override" }] }), null);
+  assert.equal(validateMessages({ consent: true, messages: [{ role: "user", content: "hello", image: "upload" }] }), null);
+  assert.equal(validateMessages({ consent: true, messages: [{ role: "user", content: "x".repeat(2000) }] }), null);
+  assert.equal(validateMessages({ consent: true, messages: [{ role: "assistant", content: "older" }] }), null);
+  assert.equal(validateMessages({ consent: true, messages: [{ role: "user", content: "Hi" }], tools: [{ type: "web_search" }] }), null);
+  assert.deepEqual(validateMessages({ consent: true, messages: [{ role: "user", content: "Hola" }] }),
     [{ role: "user", content: "Hola" }]);
 });
 
@@ -174,8 +174,21 @@ test("rejects malformed payloads before reservation", async (t) => {
   await authenticatedFixture(t, async ({ jwt, calls }) => {
     const e = env();
     assert.equal((await onRequestPost({
-      request: req(jwt, { messages: [{ role: "user", content: "H" }], api_key: "client-key" }), env: e,
+      request: req(jwt, { messages: [{ role: "user", content: "H" }], consent: true, api_key: "client-key" }), env: e,
     })).status, 400);
+    assert.equal(e.DB.quotaCalls, 0);
+    assert.equal(calls.length, 0);
+  });
+});
+
+test("missing request-level consent prevents quota reservation", async (t) => {
+  await authenticatedFixture(t, async ({ jwt, calls }) => {
+    const e = env();
+    const response = await onRequestPost({
+      request: req(jwt, { messages: [{ role: "user", content: "Private text" }] }),
+      env: e,
+    });
+    assert.equal(response.status, 400);
     assert.equal(e.DB.quotaCalls, 0);
     assert.equal(calls.length, 0);
   });
