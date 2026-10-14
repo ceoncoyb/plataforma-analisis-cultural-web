@@ -61,6 +61,10 @@ test("all public entry points stay on Pages and do not redirect to the legacy Ch
 test("corpus lab loads real local video and supports synchronized interval controls", async () => {
   const demo = await read("demo/index.html");
   const script = await read("assets/site.js");
+  // Required selectors must exist in the actual page, not just in the VM's mock DOM.
+  for (const [, id] of script.matchAll(/\$\("#([\w-]+)"\)/g)) {
+    assert.ok(demo.includes(`id="${id}"`), `demo is missing the #${id} control used by site.js`);
+  }
   assert.match(demo, /id="media-files" type="file"[^>]*multiple/);
   assert.match(demo, /accept="video\/\*,audio\/\*,image\/\*/);
   assert.match(demo, /id="media-stage"/);
