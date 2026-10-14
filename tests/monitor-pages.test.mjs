@@ -66,3 +66,49 @@ test("network errors do not leak exception details or secrets", async () => {
   assert.equal(report.ok, false);
   assert.equal(JSON.stringify(report).includes("secret_token_xyz"), false);
 });
+
+
+test("unexpected external auth redirect causes regression", async () => {
+  const fetchImpl = async (url) => new URL(url).pathname === "/api/session"
+    ? new Response(null, { status: 302, headers: { location: "https://attacker.example/login" } })
+    : stub()(url);
+  const report = await auditPages({ fetchImpl });
+  assert.equal(report.ok, false);
+  assert.match(report.errors.join(" "), /unsafe authentication redirect/);
+});
+
+test("scheme-relative hostile redirect causes regression", async () => {
+  const fetchImpl = async (url) => new URL(url).pathname === "/api/review-draft"
+    ? new Response(null, { status: 302, headers: { location: "//attacker.example/" } })
+    : stub()(url);
+  assert.equal((await auditPages({ fetchImpl })).ok, false);
+});
+
+test("redirect without a Location header causes regression", async () => {
+  const fetchImpl = async (url) => new URL(url).pathname === "/api/session"
+    ? new Response(null, { status: 302 }) : stub()(url);
+  assert.equal((await auditPages({ fetchImpl })).ok, false);
+});
+
+test("valid team-domain Access redirect remains unverified but not a security failure", async () => {
+  const fetchImpl = async (url) => new URL(url).pathname === "/api/session"
+    ? new Response(null, { status: 302, headers: { location: "https://myteam.cloudflareaccess.com/cdn-cgi/access/login/test" } })
+    : stub()(url);
+  const report = await auditPages({ fetchImpl });
+  assert.equal(report.ok, true);
+  assert.match(report.warnings.join(" "), /authentication redirect not followed/);
+});
+
+test("lookalike Cloudflare hostname causes regression", async () => {
+  const fetchImpl = async (url) => new URL(url).pathname === "/api/session"
+    ? new Response(null, { status: 302, headers: { location: "https://team.cloudflareaccess.com.attacker.example/login" } })
+    : stub()(url);
+  assert.equal((await auditPages({ fetchImpl })).ok, false);
+});
+
+test("same-origin non-Access redirection causes regression", async () => {
+  const fetchImpl = async (url) => new URL(url).pathname === "/api/session"
+    ? new Response(null, { status: 302, headers: { location: "/" } })
+    : stub()(url);
+  assert.equal((await auditPages({ fetchImpl })).ok, false);
+});

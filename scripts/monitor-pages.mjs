@@ -12,6 +12,21 @@ const pages = [
 const protectedApis = ["/api/session", "/api/review-draft"];
 const legacyLink = /\b(?:href|src)\s*=\s*["']https?:\/\/[^"']*chatgpt\.site/i;
 
+// Accept only plausible Cloudflare Access redirects without following them.
+// An unrelated destination must never be mistaken for a valid login route.
+function validAccessRedirect(location, origin) {
+  if (!location) return false;
+  try {
+    const destination = new URL(location, origin);
+    const team = destination.hostname.endsWith(".cloudflareaccess.com")
+      && destination.hostname.length > ".cloudflareaccess.com".length;
+    const ownAccess = destination.origin === origin
+      && destination.pathname.startsWith("/cdn-cgi/access/");
+    return destination.protocol === "https:" && !destination.username && !destination.password
+      && (team || ownAccess);
+  } catch { return false; }
+}
+
 export async function auditPages({ fetchImpl = fetch, origin = ORIGIN } = {}) {
   const errors = [], warnings = [], checks = [];
   const root = new URL(origin).origin;
@@ -64,7 +79,11 @@ export async function auditPages({ fetchImpl = fetch, origin = ORIGIN } = {}) {
     if (response.status === 503) {
       warnings.push(path + ": HTTP 503 (known configuration blocker, not a healthy API)");
     } else if ([301, 302, 303, 307, 308].includes(response.status)) {
-      warnings.push(path + ": authentication redirect not followed; login not verified");
+      if (validAccessRedirect(response.headers.get("location"), root)) {
+        warnings.push(path + ": authentication redirect not followed; login not verified");
+      } else {
+        errors.push(path + ": unexpected or unsafe authentication redirect");
+      }
     } else if ([401, 403].includes(response.status)) {
       warnings.push(path + ": anonymous request denied; authenticated flow not verified");
     } else if (response.status === 200) {
