@@ -13,28 +13,28 @@
 2. Diseñar un servicio público separado con OAuth real por persona o espacio y controles de tenant probados. No apuntarlo a la D1 privada ni migrar/importar proyectos actuales.
 3. Someter la arquitectura de identidad, retención, exportación y borrado a pruebas de aislamiento entre dos cuentas antes de guardar datos de clientes.
 4. Actualizar esta política con el flujo de datos real del servicio externo, subprocesadores y derechos del usuario.
-5. Con un endpoint estable, dominio controlado, manifiesto y paquete completos, preparar las pruebas y video exigidos en el portal de Plugins de OpenAI.
+5. Con un servidor MCP remoto estable en HTTPS y un dominio controlado, usar la ruta **With MCP** del portal de Plugins de OpenAI. Un ZIP de skills no sustituye el envío remoto del MCP. Preparar las pruebas, metadatos, escaneo y vídeo requeridos por ese flujo.
 
 Si el lanzamiento exige cambiar la identidad, permisos, endpoint o D1 del Site actual, se detiene y rediseña la ruta. No publiques un paquete que conecte al MCP privado o que pida una clave compartida.
 
 ## Lista de entrega para el portal de Plugins
 
 - [ ] Identidad de desarrollador individual o negocio verificada.
-- [ ] ZIP del plugin con metadatos; una sola conexión MCP.
-- [ ] Elegir la URL final antes de enviar el ZIP: el flujo de actualización no permite cambiar el MCP URL en una versión publicada sin contactar a soporte.
+- [ ] Seleccionar **With MCP** para un servidor MCP remoto accesible por HTTPS. Los ZIP de skills y los MCP locales aprobados siguen rutas distintas; no se debe enviar el servidor remoto como ZIP de skills.
+- [ ] Elegir y verificar la URL estable del MCP remoto **antes de enviar la integración**: un cambio posterior del endpoint publicado puede exigir un proceso adicional de actualización o soporte.
 - [ ] Dominio del servidor verificado con el challenge que entrega el portal.
 - [ ] URL `/mcp` estable; autenticación compatible declarada en `mcp.json` (OAuth/DCR/CIMD según la implementación). No incluir secretos ni incrustar bearer tokens.
-- [ ] Herramientas mínimas, nombres y descripciones coinciden con sus efectos y minimizan datos.
+- [ ] Herramientas mínimas y con nombres/descripciones congruentes con sus efectos; incluir las anotaciones `readOnlyHint`, `openWorldHint` y `destructiveHint` y sus justificaciones según la revisión MCP; minimizar permisos, datos y retención.
 - [ ] Escaneo MCP y comprobaciones de metadatos pasan.
-- [ ] Política de privacidad específica para la aplicación pública y controles de consentimiento claros.
+- [ ] HTTPS disponible para **sitio web, soporte, privacidad y términos de uso**; política de datos específica para la aplicación pública, controles de consentimiento y retención claramente descritos.
 - [ ] Cinco pruebas positivas y tres negativas, verificadas con una cuenta de demostración y datos ficticios:
   - Positivas: crear perfiles independientes; registrar una fuente y sus localizadores; proponer lecturas con evidencia a favor y en contra; auditar el 100 % de las unidades declaradas para el corpus de prueba, con recuento derivado de su estructura real; recorrer todas las secuencias, intervalos, fotogramas y demás unidades audiovisuales declaradas que correspondan al caso, sin imponer un número fijo de segmentos.
   - Negativas: intentar abrir el proyecto de otra cuenta; pedir que se inventen localizadores/tiempos ausentes; pedir una certificación interpretativa o un cuadrado sin satisfacer sus condiciones de evidencia.
-- [ ] Video accesible que demuestra los casos, notas de versión y países disponibles.
+- [ ] Vídeo accesible que demuestra los casos, notas de versión y países disponibles. Metadatos del listado dentro de los límites actuales: nombre visible hasta 30 caracteres, descripción breve hasta 30, máximo 20 capacidades y hasta tres prompts de inicio; sin publicidad de precios o promociones.
 - [ ] Revisión de OpenAI aprobada; publicación desde el portal.
 - [ ] Prueba de conexión desde la ficha pública y monitoreo de escaneos posteriores.
 
-OpenAI documenta el envío y revisión de plugins en el [portal oficial](https://developers.openai.com/plugins/deploy/submission). La aprobación no está garantizada. La guía oficial explica que los secretos permanecen fuera del ZIP y que los MCP requieren verificación de dominio y escaneo.
+OpenAI documenta la ruta **With MCP** y el proceso de revisión en el [portal de envío](https://developers.openai.com/plugins/deploy/submission), los [errores y requisitos de validación](https://developers.openai.com/plugins/deploy/submission-errors) y las [reglas del directorio](https://developers.openai.com/plugins/plugin-guidelines). La aprobación no está garantizada. Un piloto incompleto, una demo o un servidor privado no equivale a un plugin publicable; nunca se incluyen secretos en el paquete ni en la ficha.
 
 ## Monetización
 
