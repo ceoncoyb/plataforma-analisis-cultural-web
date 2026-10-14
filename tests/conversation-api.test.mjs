@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { onRequestPost, validateMessages, onlyOutputText } from "../functions/api/conversation.js";
+import { prepareContext } from "../public/conversacion/context-budget.js";
 
 const issuer = "https://native-pilot-test.cloudflareaccess.com";
 const audience = "native-pilot-test-audience";
@@ -231,4 +232,53 @@ test("extracts only assistant output_text, not tool data or reasoning", () => {
     { type: "message", role: "assistant", content: [{ type: "output_text", text: "visible" }] },
     { type: "function_call", content: [{ type: "output_text", text: "tool" }] },
   ] }), "visible");
+});
+
+
+test("client context and API accept two turns after a long assistant reply", async (t) => {
+  await authenticatedFixture(t, async ({ jwt, calls, setFetch }) => {
+    const e = env();
+    const longReply = "A".repeat(6_000);
+    setFetch(async (url, options) => {
+      if (String(url).endsWith("/certs"))
+        return new Response(JSON.stringify({ keys: [
+          { ...keys.publicKey.export({ format: "jwk" }), kid: "pilot-fixed-test-key", alg: "RS256", use: "sig" },
+        ] }), { status: 200 });
+      calls.push({ uri: String(url), options });
+      const output = calls.length === 1 ? longReply : "Continuación";
+      return new Response(JSON.stringify({ status: "completed", incomplete_details: null, output_text: output }), { status: 200 });
+    });
+
+    const originalNow = Date.now;
+    let testNow = originalNow();
+    Date.now = () => testNow;
+    try {
+      const first = await onRequestPost({ request: req(jwt), env: e });
+      assert.equal(first.status, 200);
+      const firstPayload = await first.json();
+      assert.equal(firstPayload.reply.length, 6_000);
+
+      const history = [
+        { role: "user", content: "Hola" },
+        { role: "assistant", content: firstPayload.reply },
+      ];
+      const next = prepareContext(history, "Continúa");
+      assert.equal(next.shortened, true);
+      assert.deepEqual(next.messages, [{ role: "user", content: "Continúa" }]);
+
+      // Respect the configured 60-second minimum interval while checking the next turn.
+      testNow += 61_000;
+      const second = await onRequestPost({
+        request: req(jwt, { messages: next.messages, consent: true }),
+        env: e,
+      });
+      assert.equal(second.status, 200);
+      assert.equal((await second.json()).reply, "Continuación");
+      assert.equal(calls.length, 2);
+      assert.deepEqual(JSON.parse(calls[1].options.body).input, next.messages);
+      assert.ok(!JSON.stringify(calls[1].options.body).includes(longReply));
+    } finally {
+      Date.now = originalNow;
+    }
+  });
 });
