@@ -6,9 +6,9 @@ Landing, sandbox didáctico y documentación pública del producto. Este reposit
 
 La Plataforma organiza estudios con perfiles configurables por proyecto, fuentes y evidencia localizables, lecturas contrastables, decisiones humanas y auditoría de cobertura. Su ámbito incluye investigación cultural y de medios, UX, investigación cualitativa, servicios/sistemas y perfiles propios. El laboratorio audiovisual es un piloto especializado dentro del producto.
 
-El laboratorio audiovisual importa exportaciones del plugin, mantiene el manifiesto fuente y los medios en el navegador, y conserva las decisiones humanas de cotejo en `localStorage` y en la D1 `analisis-cultural-lab` del proyecto Pages. La API Pages solo acepta solicitudes autenticadas por Cloudflare Access, valida el JWT, restringe el correo a una lista permitida y separa los borradores por usuario, proyecto y revisión. No sube medios ni el manifiesto fuente. El endpoint crea la tabla de revisión si aún no existe. La demo general (`/demo/`) continúa usando almacenamiento local y no escribe en D1.
+El laboratorio audiovisual importa exportaciones del plugin y conserva el manifiesto fuente, los medios y las decisiones de cotejo en el navegador (`localStorage`). **El código contempla** una copia de las decisiones en D1 `analisis-cultural-lab` mediante API autenticada por Cloudflare Access, con validación de JWT, lista de correos permitidos y separación por usuario/proyecto/revisión; esta funcionalidad remota **no debe presentarse como operativa hasta superar sus pruebas en producción**. No se diseñó para subir medios ni el manifiesto fuente. La demo general (`/demo/`) no escribe en D1.
 
-El conector ChatGPT continúa privado para la cuenta propietaria. La D1 de Pages respalda las revisiones del laboratorio; no es la D1 privada del conector ni escribe automáticamente al MCP. La exportación de revisión sigue disponible para transferir resultados al plugin mediante su flujo autorizado.
+El conector ChatGPT continúa privado para la cuenta propietaria. La D1 prevista para Pages es independiente de la D1 privada del conector y no escribe automáticamente al MCP. La exportación JSON de revisión sigue siendo la ruta explícita de transferencia cuando proceda; no implica sincronización remota activa.
 
 ## Ejecutar
 
@@ -36,6 +36,8 @@ Configura el proyecto Git conectado al repositorio con:
 Cloudflare Pages publica el dominio `*.pages.dev`, reconstruye al recibir commits y crea vistas previas para cambios de ramas/PR. Un dominio propio se conecta después desde Pages si se dispone de su zona DNS.
 
 ## D1 y acceso del laboratorio
+
+**Estado documentado, no verificación en vivo:** la [incidencia #12](https://github.com/ceoncoyb/plataforma-analisis-cultural-web/issues/12) registró el 14/10/2026 HTTP 503 en `/api/session` con variables de Cloudflare Access incompletas. Eso no prueba que el estado sea idéntico ahora: no se ha realizado aquí una sesión autenticada de extremo a extremo. La sincronización D1 queda **PENDIENTE DE VERIFICAR**; el sitio público y la demo local son rutas separadas. No introducir corpus privado en la API hasta confirmar identidad, `DB`, aislamiento y reversibilidad en un ensayo no sensible.
 
 La base `analisis-cultural-lab` debe estar enlazada a Pages con la variable `DB`. Protege `https://plataforma-analisis-cultural-web.pages.dev/api/*` con una aplicación Self-hosted de Cloudflare Access y una política Allow limitada a las identidades propietarias. Configura las variables de producción `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` y `CF_ACCESS_ALLOWED_EMAILS` en Pages. Sin las tres variables, la API falla de forma cerrada. Guía paso a paso: [`docs/cloudflare-d1-setup.md`](docs/cloudflare-d1-setup.md).
 
