@@ -22,8 +22,7 @@ test("product site presents the corpus lab as cross-disciplinary and configurabl
   assert.match(demo, /Una ficha sintética carga el estudio/);
   assert.match(home, /Sigue cada hallazgo hasta la evidencia que lo sostiene/);
   assert.match(home, /Probar gratis, sin cuenta/);
-  assert.match(home, /Ya tengo acceso · abrir en ChatGPT/);
-  assert.match(home, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
+  assert.match(home, /Abrir laboratorio en Pages/);
   assert.match(home, /Guía visual del flujo/);
   assert.match(demo, /Prueba el flujo en un clic/);
   assert.match(demo, /no reemplaza tu proyecto/);
@@ -32,8 +31,9 @@ test("product site presents the corpus lab as cross-disciplinary and configurabl
   assert.match(demo, /Campo del estudio/);
   assert.match(demo, /Una estructura común\. Cada campo conserva su método\./);
   assert.match(demo, /no ejecuta el análisis generativo del conector privado/);
-  assert.match(demo, /JSON compatible con la importación del conector/);
-  assert.match(demo, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
+  assert.match(demo, /Descarga un JSON compatible con el conector/);
+  assert.match(demo, /conector instalable en ChatGPT/);
+  assert.match(demo, /Abrir el laboratorio audiovisual en Pages/);
   assert.match(demo, /No modifiques ningún proyecto existente/);
   for (const use of ["Producto / servicio", "Investigación UX", "Cultura y medios", "Políticas / sistemas", "Estudio audiovisual"]) assert.ok(demo.includes(use), `missing adaptable profile ${use}`);
 });
@@ -48,6 +48,14 @@ test("primary CTAs route to the actual public demo, with a clear return path", a
   assert.match(home, /href="\/assets\/guia-rapida\.mp4"|source src="\/assets\/guia-rapida\.mp4"/);
   await access(join(root, "public", "assets/guia-rapida.mp4"));
   await access(join(root, "public", "assets/evidence-flow.jpg"));
+});
+
+test("all public entry points stay on Pages and do not redirect to the legacy ChatGPT Site", async () => {
+  for (const route of ["index.html", "demo/index.html", "laboratorio/index.html"]) {
+    const html = await read(route);
+    assert.doesNotMatch(html, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
+    assert.doesNotMatch(html, /href="https?:\/\/[^\"]*chatgpt\.site/i);
+  }
 });
 
 test("corpus lab loads real local video and supports synchronized interval controls", async () => {
@@ -111,7 +119,7 @@ test("public pages contain no third-party trackers or invented app install links
 test("audiovisual review route imports the plugin export, syncs review drafts to protected D1, and keeps media local", async () => {
   const html = await read("laboratorio/index.html");
   const script = await read("laboratorio/lab.js");
-  assert.match(html, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
+  assert.match(html, /Abrir demo en Pages/);
   assert.match(html, /type="module" src="\/laboratorio\/lab\.js"/);
   assert.match(html, /proyecto fuente queda en solo lectura/i);
   assert.match(html, /no se envía/i);

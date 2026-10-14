@@ -28,7 +28,7 @@ Si el lanzamiento exige cambiar la identidad, permisos, endpoint o D1 del Site a
 - [ ] Escaneo MCP y comprobaciones de metadatos pasan.
 - [ ] Política de privacidad específica para la aplicación pública y controles de consentimiento claros.
 - [ ] Cinco pruebas positivas y tres negativas, verificadas con una cuenta de demostración y datos ficticios:
-  - Positivas: crear perfiles independientes; registrar una fuente y sus localizadores; proponer lecturas con evidencia a favor y en contra; auditar cobertura con 28/28 unidades estructuradas; recorrer todas las secuencias e intervalos declarados de un caso audiovisual.
+  - Positivas: crear perfiles independientes; registrar una fuente y sus localizadores; proponer lecturas con evidencia a favor y en contra; auditar el 100 % de las unidades declaradas para el corpus de prueba, con recuento derivado de su estructura real; recorrer todas las secuencias, intervalos, fotogramas y demás unidades audiovisuales declaradas que correspondan al caso, sin imponer un número fijo de segmentos.
   - Negativas: intentar abrir el proyecto de otra cuenta; pedir que se inventen localizadores/tiempos ausentes; pedir una certificación interpretativa o un cuadrado sin satisfacer sus condiciones de evidencia.
 - [ ] Video accesible que demuestra los casos, notas de versión y países disponibles.
 - [ ] Revisión de OpenAI aprobada; publicación desde el portal.
