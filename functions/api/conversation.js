@@ -42,7 +42,7 @@ function sameOrigin(request) {
 function validateMessages(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) return null;
   // No files, tools, provider keys, models, redirects or system instructions may be supplied by the browser.
-  if (Object.keys(input).length !== 1 || !Array.isArray(input.messages)
+  if (Object.keys(input).length !== 2 || input.consent !== true || !Array.isArray(input.messages)
       || input.messages.length < 1 || input.messages.length > MAX_MESSAGES) return null;
   let size = 0;
   const messages = [];
