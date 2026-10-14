@@ -211,14 +211,20 @@ test("candidate decisions enforce local media, SHA identity, and inclusive timin
 test("project build fingerprints the interactive asset and rewrites every route", async () => {
   const script = await read("assets/site.js");
   const fingerprint = createHash("sha256").update(script).digest("hex").slice(0, 12);
+  const stylesheet = await read("assets/site.css");
+  const cssFingerprint = createHash("sha256").update(stylesheet).digest("hex").slice(0, 12);
   const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "plans/index.html", "privacy/index.html"];
   for (const route of routes) {
     const html = await readFile(join(root, "dist", route), "utf8");
     assert.match(html, new RegExp(`/assets/site\\.${fingerprint}\\.js`), route);
+    assert.match(html, new RegExp(`/assets/site\\.${cssFingerprint}\\.css`), route);
     assert.doesNotMatch(html, /\/assets\/site\.js(?:["?])/);
+    assert.doesNotMatch(html, /\/assets\/site\.css(?:["?])/);
   }
   await access(join(root, "dist", `assets/site.${fingerprint}.js`));
+  await access(join(root, "dist", `assets/site.${cssFingerprint}.css`));
   await assert.rejects(access(join(root, "dist", "assets/site.js")));
+  await assert.rejects(access(join(root, "dist", "assets/site.css")));
 });
 
 test("browser workflow annotates a real selected video interval and persists/export metadata", async () => {
@@ -358,4 +364,5 @@ test("browser workflow annotates a real selected video interval and persists/exp
   assert.equal(siteMcpCopy.sources[0].title, "secuencia.mp4");
   assert.equal(siteMcpCopy.sources[0].local_only, true);
 });
+
 
