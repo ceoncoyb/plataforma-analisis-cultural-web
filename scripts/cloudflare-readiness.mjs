@@ -25,7 +25,16 @@ function status(ok, observed) {
 }
 
 function hasExactName(text, name) {
-  return String(text || "").split(/[^A-Za-z0-9_]+/).includes(name);
+  const haystack = String(text || "");
+  const isWord = (character) => /[A-Za-z0-9_-]/.test(character || "");
+  let cursor = 0;
+  while ((cursor = haystack.indexOf(name, cursor)) !== -1) {
+    const before = haystack[cursor - 1];
+    const after = haystack[cursor + name.length];
+    if (!isWord(before) && !isWord(after)) return true;
+    cursor += name.length;
+  }
+  return false;
 }
 
 export function d1NameIsPresent(text) {
@@ -33,7 +42,7 @@ export function d1NameIsPresent(text) {
     const entries = JSON.parse(text);
     return Array.isArray(entries) && entries.some((entry) =>
       entry && typeof entry.name === "string" && entry.name === D1_DATABASE);
-  } catch { return false; }
+  } catch { return null; }
 }
 
 function realRunner(args) {
@@ -80,7 +89,7 @@ export function inspectReadiness(run = realRunner) {
     wrangler_available: true,
     authenticated: "observed",
     pages_project: status(project.ok, hasExactName(project.stdout, PROJECT)),
-    d1_database: status(db.ok, d1NameIsPresent(db.stdout)),
+    d1_database: status(db.ok && d1NameIsPresent(db.stdout) !== null, d1NameIsPresent(db.stdout) === true),
     secret_names: names,
     limitations: [
       "A secret name does not prove that its value is correct.",
