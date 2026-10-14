@@ -44,7 +44,7 @@
         <form id="chat-form" class="chat-form">
           <label for="chat-text">Mensaje de texto</label>
           <textarea id="chat-text" name="message" maxlength="1600" rows="4" required placeholder="Escribe una pregunta…" aria-describedby="chat-limits"></textarea>
-          <div id="chat-limits" class="chat-count"><span id="remaining">0 de 1600 caracteres</span><span>Máximo 8 mensajes en el contexto enviado</span></div>
+          <div id="chat-limits" class="chat-count"><span id="remaining">0 de 1600 caracteres</span><span>Máximo 8 mensajes en el contexto enviado</span><span>Si se alcanza el límite, se omiten turnos antiguos sin modificar tus mensajes visibles.</span></div>
           <label class="chat-consent" for="chat-consent">
             <input id="chat-consent" type="checkbox" required>
             <span>Autorizo enviar el texto que escriba y el historial reciente de esta pestaña a OpenAI a través del servidor protegido, únicamente cuando pulse «Enviar». No incluiré información confidencial ni datos personales de terceros.</span>
