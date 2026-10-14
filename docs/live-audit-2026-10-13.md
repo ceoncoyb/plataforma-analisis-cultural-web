@@ -23,7 +23,7 @@ La documentación y el código confirman que los borradores de revisión pueden 
 | F. ChatGPT → herramientas culturales | Plugin MCP privado | VERIFICADO EN CHATGPT | La herramienta `list_projects` responde y muestra la revisión viva 326 de Tesis ONCOY v5 | No prueba conexión desde Pages ni disponibilidad de sus datos fuera de ChatGPT | Ninguno | Lectura de lista de proyectos; sin escritura |
 | G. Acciones web reflejadas en MCP | Servicio cultural autorizado | AUSENTE | README y guía D1 especifican exportación JSON manual | Sin API o sincronización bidireccional demostrada | Ninguno | No comprobado |
 | H. Identidad/revisiones coherentes entre sistemas | Web D1 y proyecto `tesis-oncoy-y-2026-v5` | PARCIAL | Plugin informa en vivo revisión 326, 103 unidades, 130 evidencias y 27 lecturas | No se pudo cotejar el mismo conjunto de IDs con la D1 web, que sigue bloqueada por Access | Ninguno | La API web devuelve 503; no se modificó el proyecto |
-| Navegación Pages sin redirección | Portada, demo y laboratorio | IMPLEMENTADO LOCALMENTE | CTAs y enlaces públicos revisados | Cambios aún no desplegados | Se reemplazaron enlaces al dominio antiguo por rutas internas Pages | Prueba automatizada añadida; build/test posterior abajo |
+| Navegación Pages sin redirección | Portada, demo y laboratorio | DESPLEGADO EN PRODUCCIÓN | Tras merge de PR #8 y PR #9, las tres rutas devuelven HTTP 200 y no contienen el dominio `chatgpt.site` al verificar con URL de caché nueva | Un GET sin parámetro de caché siguió mostrando por unos instantes la respuesta anterior en la ruta audiovisual | Todos los CTAs públicos quedaron en rutas internas Pages | `npm test`: 15/15; verificación HTTP con parámetro único para `/`, `/demo/` y `/laboratorio/` |
 | Laboratorio audiovisual y segmentación | `/laboratorio/`, `public/laboratorio/multimodal-review.mjs` | VERIFICADO EN CÓDIGO | Incluye jerarquía de secuencias, segmentos, intervalos y fotogramas; conserva los padres declarados y tolera proyectos sin subsecuencias | No se cargó un manifiesto vivo de Tesis UPN en esta sesión; controles humanos y medios locales | Criterio de cobertura actualizado para corpus dinámico, sin número fijo | Suite local: importación y agrupación jerárquica pasan |
 
 ## Verificación técnica
@@ -34,7 +34,7 @@ La documentación y el código confirman que los borradores de revisión pueden 
 - Remote Desktop Commander reporta el equipo `DESKTOP-6KUULDG` en línea; no fue necesario operar la computadora para las comprobaciones del repositorio público.
 - `npm test`: 15 pruebas pasaron, 0 fallidas tras esta actualización. Incluye pruebas de JWT simulado, aislamiento por usuario/proyecto/revisión, rechazo de identidad ausente, CORS, límites de datos, flujos locales del laboratorio y ausencia de enlaces públicos al Site antiguo.
 - Inspección HTTP directa: las dos páginas sirven; las APIs devuelven 503 por configuración de Access ausente. No se afirmó acceso a D1 ni a sistemas privados.
-- No se ejecutó despliegue, migración o escritura de datos. No se generaron gastos de API.
+- Los PR #8 y #9 se fusionaron después de pasar las pruebas. Cloudflare Pages publicó los cambios automáticamente; no se ejecutaron migraciones ni escrituras de datos y no se generaron gastos de API.
 
 ## Corrección metodológica
 
