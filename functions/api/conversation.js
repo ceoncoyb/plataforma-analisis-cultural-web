@@ -143,6 +143,8 @@ export async function onRequestPost({ request, env }) {
   if (!provider.ok) return json({ error: "Model provider did not complete the request." }, 502);
   try {
     const data = await provider.json();
+    if (data?.status !== "completed" || data.incomplete_details)
+      return json({ error: "Model response is incomplete or not finalized." }, 502);
     const reply = onlyOutputText(data);
     if (!reply) return json({ error: "Model response did not include usable text." }, 502);
     return json({ reply, storage: "browser_only", external_provider: "OpenAI Responses API",
