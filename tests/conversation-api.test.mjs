@@ -6,6 +6,7 @@ import { onRequestPost, validateMessages, onlyOutputText } from "../functions/ap
 const issuer = "https://native-pilot-test.cloudflareaccess.com";
 const audience = "native-pilot-test-audience";
 const email = "owner@example.test";
+const keys = generateKeyPairSync("rsa", { modulusLength: 2048 });
 
 function token(privateKey, kid) {
   const encode = (v) => Buffer.from(JSON.stringify(v)).toString("base64url");
@@ -64,8 +65,8 @@ function req(jwt = null, input = { messages: [{ role: "user", content: "Hola" }]
 }
 
 async function authenticatedFixture(t, handler) {
-  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
-  const kid = "pilot-key-" + Date.now();
+  const { privateKey, publicKey } = keys;
+  const kid = "pilot-fixed-test-key";
   const jwk = { ...publicKey.export({ format: "jwk" }), kid, alg: "RS256", use: "sig" };
   const priorFetch = globalThis.fetch;
   const calls = [];
