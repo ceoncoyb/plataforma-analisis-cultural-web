@@ -8,6 +8,7 @@ const pages = [
   ["/demo/", ['id="media-files"', "Una ficha sintética"]],
   ["/laboratorio/", ['id="manifest-file"', 'src="/laboratorio/lab.js"']],
   ["/privacy/", ['name="description"']],
+  ["/support/", ["Reporta un problema reproducible", 'href="https://github.com/ceoncoyb/plataforma-analisis-cultural-web/issues/new"']],
 ];
 const protectedApis = ["/api/session", "/api/review-draft"];
 const legacyLink = /\b(?:href|src)\s*=\s*["']https?:\/\/[^"']*chatgpt\.site/i;
