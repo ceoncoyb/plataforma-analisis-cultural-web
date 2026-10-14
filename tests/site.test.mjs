@@ -100,6 +100,12 @@ test("all product routes expose SEO metadata, navigation and privacy", async () 
   }
 });
 
+test("corpus lab mobile grid can shrink without forcing horizontal overflow", async () => {
+  const css = await read("assets/site.css");
+  assert.match(css, /@media\s*\(max-width:\s*700px\)\s*\{\s*\.lab-grid\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(css, /\.lab-sidebar\s*,\s*\.lab-main\s*\{\s*min-width:\s*0\s*\}/);
+});
+
 test("public pages contain no third-party trackers or invented app install links", async () => {
   const files = await readdir(join(root, "public"), { recursive: true });
   const htmlFiles = files.filter((file) => String(file).endsWith(".html"));
