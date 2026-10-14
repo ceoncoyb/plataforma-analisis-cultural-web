@@ -76,7 +76,7 @@ test("lab storage and exports include project scope, corpus annotations and expl
   const privacy = await read("privacy/index.html");
   const script = await read("assets/site.js");
   assert.match(privacy, /Los medios seleccionados \(video, audio, imágenes y documentos\) se previsualizan desde memoria local/);
-  assert.match(privacy, /sincroniza únicamente el borrador de revisión/);
+  assert.match(privacy, /La sincronización remota sigue pendiente de una prueba autenticada en producción/);
   assert.match(demo, /tu material no se sube ni se envía a ChatGPT/i);
   assert.match(demo, /No es la D1 ni escribe en el plugin de ChatGPT/);
   assert.match(demo, /id="import-project"/);
@@ -88,7 +88,7 @@ test("lab storage and exports include project scope, corpus annotations and expl
 });
 
 test("all product routes expose SEO metadata, navigation and privacy", async () => {
-  const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "plans/index.html", "privacy/index.html"];
+  const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "plans/index.html", "privacy/index.html", "support/index.html"];
   for (const route of routes) {
     const html = await read(route);
     assert.match(html, /<title>/, route);
