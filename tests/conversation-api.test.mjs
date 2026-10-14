@@ -75,6 +75,7 @@ async function authenticatedFixture(t, handler) {
     if (uri === issuer + "/cdn-cgi/access/certs") return new Response(JSON.stringify({ keys: [jwk] }), { status: 200 });
     calls.push({ uri, options });
     return new Response(JSON.stringify({
+      status: "completed", incomplete_details: null,
       output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: "Respuesta" }] }],
     }), { status: 200 });
   };
@@ -194,6 +195,20 @@ test("provider errors never leak internal body or token", async (t) => {
     assert.ok(!payload.includes(e.OPENAI_API_KEY));
     assert.equal(e.DB.quotaCalls, 1);
     assert.equal(calls.length, 0);
+  });
+});
+
+test("incomplete provider outputs are never represented as finalized answers", async (t) => {
+  await authenticatedFixture(t, async ({ jwt, setFetch }) => {
+    const e = env();
+    const validKeys = new Response(JSON.stringify({ keys: [] }), { status: 200 });
+    setFetch(async (url) => String(url).endsWith("/certs") ?
+      validKeys.clone() :
+      new Response(JSON.stringify({ status: "incomplete", incomplete_details: { reason: "max_output_tokens" },
+        output_text: "unfinished" }), { status: 200 }));
+    const response = await onRequestPost({ request: req(jwt), env: e });
+    assert.equal(response.status, 502);
+    assert.ok(!JSON.stringify(await response.json()).includes("unfinished"));
   });
 });
 
