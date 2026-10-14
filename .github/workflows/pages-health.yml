@@ -1,0 +1,35 @@
+name: Pages public health
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check-pages:
+    if: github.repository == 'ceoncoyb/plataforma-analisis-cultural-web'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check public paths and anonymous API security
+        id: check
+        run: node scripts/monitor-pages.mjs
+      - name: Record a single open incident for regression
+        if: failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          title='Pages public health regression (automated)'
+          existing="$(gh issue list --state open --limit 100 --json title --jq '.[] | .title' | grep -Fx "$title" || true)"
+          if [[ -z "$existing" ]]; then
+            gh issue create --title "$title" --body "A scheduled read-only Pages health check failed. Review the run: $GH_RUN_URL. This monitor never sends user data or billable AI POST requests. Access/D1 HTTP 503 is a known blocker and does not trigger this issue by itself."
+          fi
