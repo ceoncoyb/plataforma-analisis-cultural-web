@@ -65,7 +65,7 @@ form.addEventListener("submit", async (event) => {
       credentials: "same-origin",
       cache: "no-store",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages: outgoing }),
+      body: JSON.stringify({ messages: outgoing, consent: true }),
       signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok) {
