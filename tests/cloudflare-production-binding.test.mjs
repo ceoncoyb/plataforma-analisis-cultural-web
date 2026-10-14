@@ -17,7 +17,7 @@ const production = [
 
 test("detects the exact D1 DB binding in production without exposing values", () => {
   const out = inspectProductionToml(production);
-  assert.equal(out.production_d1_binding, "observed");
+  assert.equal(out.production_db_binding, "observed");
   assert.equal(out.production_expected_database, "observed");
   assert.equal(out.production_d1_block_count, 1);
   assert.equal(out.vars_declared_in_download.CF_ACCESS_AUD, "observed");
