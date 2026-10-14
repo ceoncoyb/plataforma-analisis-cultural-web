@@ -9,6 +9,7 @@ function html(path) {
   if (path === "/demo/") return base + 'Una ficha sintética <input id="media-files">' +
     assets.map((a) => '<link href="' + a + '"><script src="' + a + '"></script>').join("") + "</body></html>";
   if (path === "/laboratorio/") return base + '<input id="manifest-file"><script src="/laboratorio/lab.js"></script></body></html>';
+  if (path === "/support/") return base + 'Reporta un problema reproducible <a href="https://github.com/ceoncoyb/plataforma-analisis-cultural-web/issues/new">Nueva incidencia</a></body></html>';
   return base + "</body></html>";
 }
 function stub({ changes = {}, inject = {} } = {}) {
@@ -111,4 +112,11 @@ test("same-origin non-Access redirection causes regression", async () => {
     ? new Response(null, { status: 302, headers: { location: "/" } })
     : stub()(url);
   assert.equal((await auditPages({ fetchImpl })).ok, false);
+});
+
+
+test("a missing support route is treated as a public regression", async () => {
+  const report = await auditPages({ fetchImpl: stub({ changes: { "/support/": 404 } }) });
+  assert.equal(report.ok, false);
+  assert.match(report.errors.join(" "), /support\/.*404/);
 });
