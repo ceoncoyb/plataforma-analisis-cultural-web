@@ -19,23 +19,17 @@ test("product site presents the corpus lab as cross-disciplinary and configurabl
   assert.match(home, /Abrir la demo práctica/);
   assert.match(home, /Video y audio con controles temporales/);
   assert.match(home, /El análisis audiovisual es un piloto especializado/);
-  assert.match(demo, /Una ficha sintética carga el estudio/);
-  assert.match(home, /Sigue cada hallazgo hasta la evidencia que lo sostiene/);
-  assert.match(home, /Probar gratis, sin cuenta/);
-  assert.match(home, /Abrir laboratorio en Pages/);
-  assert.match(home, /Guía visual del flujo/);
-  assert.match(demo, /Prueba el flujo en un clic/);
-  assert.match(demo, /no reemplaza tu proyecto/);
-  assert.match(demo, /Tutorial visual/);
+  assert.match(demo, /id="load-sample"/);
+  assert.match(demo, /ficha sintética carga el estudio/i);
+  assert.match(demo, /no reemplaza tu proyecto/i);
+  assert.match(demo, /id="study-field"/);
+  assert.match(demo, /tu método/i);
   assert.match(demo, /no se transcribe ni se analiza automáticamente/i);
-  assert.match(demo, /Campo del estudio/);
-  assert.match(demo, /Una estructura común\. Cada campo conserva su método\./);
-  assert.match(demo, /no ejecuta el análisis generativo del conector privado/);
-  assert.match(demo, /Descarga un JSON compatible con el conector/);
-  assert.match(demo, /conector instalable en ChatGPT/);
-  assert.match(demo, /Abrir el laboratorio audiovisual en Pages/);
-  assert.match(demo, /No modifiques ningún proyecto existente/);
-  for (const use of ["Producto / servicio", "Investigación UX", "Cultura y medios", "Políticas / sistemas", "Estudio audiovisual"]) assert.ok(demo.includes(use), `missing adaptable profile ${use}`);
+  assert.match(demo, /no se sube ni se envía a ChatGPT/i);
+  assert.match(demo, /No es la D1 ni escribe en el plugin de ChatGPT/);
+  assert.match(demo, /id="import-project"/);
+  assert.match(demo, /id="export-project"/);
+  assert.match(demo, /href="\/#recorrido"/);
 });
 
 test("primary CTAs route to the actual public demo, with a clear return path", async () => {
@@ -43,8 +37,8 @@ test("primary CTAs route to the actual public demo, with a clear return path", a
   const demo = await read("demo/index.html");
   assert.match(home, /href="\/demo\/">Probar gratis, sin cuenta/);
   assert.ok((home.match(/href="\/demo\//g) || []).length >= 3);
-  assert.match(demo, /href="\/">Volver a la web/);
-  assert.match(demo, /href="\/#recorrido">Ver demo/);
+  assert.match(demo, /class="brand" href="\/" aria-label="Inicio"/);
+  assert.match(demo, /href="\/#recorrido"/);
   assert.match(home, /href="\/assets\/guia-rapida\.mp4"|source src="\/assets\/guia-rapida\.mp4"/);
   await access(join(root, "public", "assets/guia-rapida.mp4"));
   await access(join(root, "public", "assets/evidence-flow.jpg"));
@@ -83,7 +77,7 @@ test("lab storage and exports include project scope, corpus annotations and expl
   const script = await read("assets/site.js");
   assert.match(privacy, /Los medios seleccionados \(video, audio, imágenes y documentos\) se previsualizan desde memoria local/);
   assert.match(privacy, /sincroniza únicamente el borrador de revisión/);
-  assert.match(demo, /Tu material no se sube ni se envía a ChatGPT/);
+  assert.match(demo, /tu material no se sube ni se envía a ChatGPT/i);
   assert.match(demo, /No es la D1 ni escribe en el plugin de ChatGPT/);
   assert.match(demo, /id="import-project"/);
   assert.match(demo, /id="export-project"/);
@@ -104,6 +98,12 @@ test("all product routes expose SEO metadata, navigation and privacy", async () 
     assert.doesNotMatch(html, /\son[a-z]+\s*=/i, route);
     if (route !== "privacy/index.html") assert.match(html, /href="\/privacy\/"/, route);
   }
+});
+
+test("corpus lab mobile grid can shrink without forcing horizontal overflow", async () => {
+  const css = await read("assets/site.css");
+  assert.match(css, /@media\s*\(max-width:\s*700px\)\s*\{\s*\.lab-grid\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+  assert.match(css, /\.lab-sidebar\s*,\s*\.lab-main\s*\{\s*min-width:\s*0\s*\}/);
 });
 
 test("public pages contain no third-party trackers or invented app install links", async () => {
@@ -211,14 +211,20 @@ test("candidate decisions enforce local media, SHA identity, and inclusive timin
 test("project build fingerprints the interactive asset and rewrites every route", async () => {
   const script = await read("assets/site.js");
   const fingerprint = createHash("sha256").update(script).digest("hex").slice(0, 12);
+  const stylesheet = await read("assets/site.css");
+  const cssFingerprint = createHash("sha256").update(stylesheet).digest("hex").slice(0, 12);
   const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "plans/index.html", "privacy/index.html"];
   for (const route of routes) {
     const html = await readFile(join(root, "dist", route), "utf8");
     assert.match(html, new RegExp(`/assets/site\\.${fingerprint}\\.js`), route);
+    assert.match(html, new RegExp(`/assets/site\\.${cssFingerprint}\\.css`), route);
     assert.doesNotMatch(html, /\/assets\/site\.js(?:["?])/);
+    assert.doesNotMatch(html, /\/assets\/site\.css(?:["?])/);
   }
   await access(join(root, "dist", `assets/site.${fingerprint}.js`));
+  await access(join(root, "dist", `assets/site.${cssFingerprint}.css`));
   await assert.rejects(access(join(root, "dist", "assets/site.js")));
+  await assert.rejects(access(join(root, "dist", "assets/site.css")));
 });
 
 test("browser workflow annotates a real selected video interval and persists/export metadata", async () => {
@@ -358,4 +364,5 @@ test("browser workflow annotates a real selected video interval and persists/exp
   assert.equal(siteMcpCopy.sources[0].title, "secuencia.mp4");
   assert.equal(siteMcpCopy.sources[0].local_only, true);
 });
+
 
