@@ -1,3 +1,5 @@
+import { prepareContext } from "./context-budget.js";
+
 // Own-origin text-only pilot. No secrets, file access, persistence or automatic requests.
 const form = document.getElementById("chat-form");
 const input = document.getElementById("chat-text");
@@ -55,7 +57,7 @@ form.addEventListener("submit", async (event) => {
     setStatus("Escribe un mensaje de máximo 1600 caracteres.", true);
     return;
   }
-  const outgoing = [...history.slice(-7), { role: "user", content: text }];
+  const { messages: outgoing, shortened } = prepareContext(history, text);
   busy = true;
   send.disabled = true;
   setStatus("Validando acceso, cuota y disponibilidad…");
@@ -90,7 +92,8 @@ form.addEventListener("submit", async (event) => {
     addMessage("assistant", payload.reply);
     input.value = "";
     updateCount();
-    setStatus("Respuesta recibida. No se guardó un historial de conversación en D1.");
+    setStatus("Respuesta recibida. No se guardó un historial de conversación en D1."
+      + (shortened ? " Se omitió parte del historial anterior por límites de contexto." : ""));
   } catch {
     setStatus("No se pudo establecer conexión. No se reintentó automáticamente.", true);
   } finally {
