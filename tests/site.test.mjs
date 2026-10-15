@@ -432,3 +432,15 @@ test("private Cloudflare article archive fails closed until Access authorizes th
   assert.equal(post.status, 401, "a configured API still requires a verified Access JWT");
   assert.equal(databaseTouches, 0, "unauthorized access never reaches D1");
 });
+
+
+test("reversioning editor runs from a same-origin module allowed by the strict content security policy", async () => {
+  const page = await read("reversionados/index.html");
+  const app = await read("reversionados/app.mjs");
+  const headers = await read("_headers");
+  assert.match(page, /<script type="module" src="\/reversionados\/app\.mjs"><\/script>/);
+  assert.match(app, /appendRevision/);
+  assert.match(app, /fetch\("\/api\/article-drafts"/);
+  assert.match(headers, /script-src 'self'/);
+  assert.doesNotMatch(page, /<script type="module">[\s\S]*?fetch\(/);
+});
