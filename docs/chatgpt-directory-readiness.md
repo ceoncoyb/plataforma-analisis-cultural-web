@@ -17,6 +17,44 @@
 
 Si el lanzamiento exige cambiar la identidad, permisos, endpoint o D1 del Site actual, se detiene y rediseña la ruta. No publiques un paquete que conecte al MCP privado o que pida una clave compartida.
 
+
+## Contrato de seguridad para el MCP remoto
+
+El MCP remoto constituye un servicio público separado de la web Pages, del almacenamiento D1 de revisión y del conector privado de ChatGPT. La ruta propuesta es:
+
+```text
+ChatGPT ── OAuth del usuario ──> MCP remoto (/mcp)
+                                      │
+                                      ├── catálogo público del producto (solo lectura)
+                                      └── espacio del usuario, únicamente tras autorización por proyecto
+
+Web Pages ── Cloudflare Access ──> API y D1 del laboratorio
+Conector privado ─────────────────> proyecto científico privado
+```
+
+Estas rutas mantienen propietarios, credenciales, permisos y almacenes separados; compartir una interfaz o un vocabulario de análisis no habilita una conexión entre ellas.
+
+### Identidad, alcance y autorización
+
+- El servidor valida cada token según el emisor, la firma, la audiencia, la vigencia y los permisos declarados para el cliente y la herramienta solicitada. El proveedor, el registro de cliente y el dominio se eligen antes de publicar; este documento no declara que estén configurados.
+- La identidad de usuario y el espacio autorizado se derivan de la sesión validada y de una relación de membresía comprobada por el servidor. El identificador de proyecto recibido en una llamada es un selector, no una prueba de acceso; cada lectura vuelve a verificar usuario, proyecto y revisión.
+- La primera superficie expuesta se limita a metadatos públicos del producto en modo de solo lectura. La lectura de espacios privados requiere autorización expresa por proyecto y una prueba de aislamiento entre cuentas. Las herramientas de escritura requieren permiso específico, consentimiento visible, registro de auditoría y una vía comprobada de revocación y borrado.
+- Las anotaciones de proyecto, borradores de tesis, decisiones autorales, archivos, corpus, imágenes y bibliotecas permanecen fuera del servicio público inicial. No se importan desde el conector privado ni se exponen mediante IDs, logs, mensajes de error o exportaciones.
+- El registro operativo conserva el identificador de solicitud, la identidad seudonimizada, el ámbito autorizado, la herramienta, el resultado y el momento; excluye tokens, texto del corpus, archivos y payloads completos. La retención y eliminación se fijan antes de habilitar persistencia.
+
+### Puertas previas a cualquier publicación
+
+1. Confirmar dominio y entorno de alojamiento controlados por el propietario, proveedor OAuth, registro de cliente y destinatarios permitidos; almacenar credenciales solo como secretos del servicio.
+2. Acordar un esquema versionado limitado a metadatos y un catálogo de herramientas con permisos mínimos; documentar qué campos entran, se guardan, se exportan y se eliminan.
+3. Revisar amenazas de suplantación, reproducción de tokens, confusión de audiencia, acceso horizontal entre proyectos, elevación de permisos, abuso de herramientas y filtración por logs.
+4. Aprobar política de acceso, revocación, auditoría, límites de uso, retención y borrado. Mantener la D1 del laboratorio y el MCP privado fuera del alcance del servicio remoto.
+5. Probar con dos identidades y proyectos sintéticos: cinco recorridos autorizados y tres rechazos (otra cuenta, proyecto/revisión fuera de alcance y operación sin permiso); incluir expiración/revocación y confirmar que no se devuelve contenido cruzado.
+6. Verificar la instalación con una cuenta elegible de ChatGPT y distinguir conexión, revisión del directorio y publicación. Una respuesta HTTP correcta o el éxito del escáner no acredita aislamiento ni aprobación.
+
+### Decisiones del propietario pendientes
+
+El desarrollo del endpoint queda condicionado a confirmar el dominio y el entorno de despliegue, el proveedor OAuth, el modelo de membresía/tenancy, la retención autorizada y los datos legalmente confirmados de soporte y privacidad. También se necesita resolver el estado de producción de Access/D1 de Pages por el issue #12. Mientras esas decisiones y pruebas falten, el contrato es una especificación de seguridad; no describe un puente operativo ni habilita sincronización.
+
 ## Lista de entrega para el portal de Plugins
 
 - [ ] Identidad de desarrollador individual o negocio verificada.
