@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plataforma-analisis-cultural-web.pages.dev/schemas/hermeneutic-reviews-v1.schema.json",
+  "title": "Propuestas de instancia hermenéutica postsemiótica L10",
+  "description": "Exportación local, trazable y pendiente de decisión autoral. No certifica interpretación ni escribe en D1 o el MCP privado.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "project_id", "project_revision", "read_only_source", "status", "interpretive_certification", "synced_to_cloudflare_d1", "written_to_private_mcp", "media_or_scans_stored", "reviews"],
+  "properties": {
+    "schema": {"const": "analysis-cultural/hermeneutic-reviews/v1"},
+    "project_id": {"type": "string", "minLength": 1, "maxLength": 200},
+    "project_revision": {"type": ["integer", "string", "null"]},
+    "read_only_source": {"const": true},
+    "status": {"const": "pending_authorial_review"},
+    "interpretive_certification": {"const": "NOT_ASSESSED"},
+    "synced_to_cloudflare_d1": {"const": false},
+    "written_to_private_mcp": {"const": false},
+    "media_or_scans_stored": {"const": false},
+    "reviews": {"type": "array", "maxItems": 250, "items": {"$ref": "#/$defs/review"}}
+  },
+  "$defs": {
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "project_id", "project_revision", "interpretive_question", "claim", "epistemic_grade", "supporting_unit_ids", "evidence_ids", "L8_synthesis_id", "L9_contrast_id", "theory_source_id", "edition_and_page_or_section", "consulted_extent_status", "source_inspected", "semiotic_operation", "mapping_steps", "alternative_reading", "counterevidence", "scope_limit", "epistemic_note", "author_decision", "human_decider", "decision_date", "status", "manuscript_claim_kind", "created_at"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "project_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "project_revision": {"type": ["integer", "string", "null"]},
+        "interpretive_question": {"type": "string", "minLength": 1, "maxLength": 700},
+        "claim": {"type": "string", "minLength": 1, "maxLength": 1600},
+        "epistemic_grade": {"enum": ["SUPPORTED", "PLAUSIBLE/INFERENCE", "SPECULATIVE/OPEN"]},
+        "supporting_unit_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "evidence_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "L8_synthesis_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "L9_contrast_id": {"type": "string", "maxLength": 200},
+        "theory_source_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "edition_and_page_or_section": {"type": "string", "minLength": 1, "maxLength": 250},
+        "consulted_extent_status": {"enum": ["full_text_verified", "specific_pages_verified", "abstract_only", "metadata_only", "pending"]},
+        "source_inspected": {"type": "boolean"},
+        "semiotic_operation": {"enum": ["analogy", "homology", "transduction", "cultural_abduction", "tensive_correlation", "other"]},
+        "mapping_steps": {"type": "string", "minLength": 1, "maxLength": 1600},
+        "alternative_reading": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "counterevidence": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "scope_limit": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "epistemic_note": {"type": "string", "maxLength": 1000},
+        "author_decision": {"enum": ["pending", "accepted", "rejected"]},
+        "human_decider": {"type": "string", "maxLength": 160},
+        "decision_date": {"type": "string", "maxLength": 10, "pattern": "^$|^\\d{4}-\\d{2}-\\d{2}$"},
+        "status": {"enum": ["draft", "ready_for_author_decision", "decision_recorded"]},
+        "manuscript_claim_kind": {"enum": ["discussion", "factual_results"]},
+        "created_at": {"type": "string", "format": "date-time"}
+      },
+      "allOf": [
+        {"if": {"properties": {"author_decision": {"enum": ["accepted", "rejected"]}}}, "then": {"properties": {"human_decider": {"minLength": 1}, "decision_date": {"minLength": 10}}}},
+        {"if": {"properties": {"author_decision": {"enum": ["accepted", "rejected"]}}}, "then": {"properties": {"status": {"const": "decision_recorded"}}}},
+        {"if": {"properties": {"status": {"const": "ready_for_author_decision"}}}, "then": {"properties": {"author_decision": {"const": "pending"}}}},
+        {"if": {"properties": {"status": {"const": "decision_recorded"}}}, "then": {"properties": {"author_decision": {"enum": ["accepted", "rejected"]}}}},
+        {"if": {"properties": {"epistemic_grade": {"const": "SUPPORTED"}}}, "then": {"properties": {"supporting_unit_ids": {"minItems": 2}, "evidence_ids": {"minItems": 2}, "consulted_extent_status": {"enum": ["full_text_verified", "specific_pages_verified"]}}}},
+        {"not": {"properties": {"epistemic_grade": {"const": "SPECULATIVE/OPEN"}, "manuscript_claim_kind": {"const": "factual_results"}}, "required": ["epistemic_grade", "manuscript_claim_kind"]}}
+      ]
+    }
+  }
+}
