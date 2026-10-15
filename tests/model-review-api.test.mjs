@@ -20,8 +20,8 @@ function fakeDb() {
   return {rows,calls,prepare(sql) {
     const statement={sql,values:[],bind(...values){this.values=values;return this;},
       async run(){calls.push(sql);const v=this.values;
-        if(sql.startsWith("INSERT INTO")){
-          if(rows.some((row)=>row.user_email===v[0]&&row.project_id===v[1]&&row.project_revision===v[2]&&(row.snapshot_id===v[3]||row.content_sha256===v[5])))return {success:false};
+        if(sql.startsWith("INSERT OR IGNORE INTO")||sql.startsWith("INSERT INTO")){
+          if(rows.some((row)=>row.user_email===v[0]&&row.project_id===v[1]&&row.project_revision===v[2]&&(row.snapshot_id===v[3]||row.content_sha256===v[5])))return {success:false,meta:{changes:0}};
           rows.push({user_email:v[0],project_id:v[1],project_revision:v[2],snapshot_id:v[3],created_at:v[4],content_sha256:v[5],review_count:v[6],reviews_json:v[7]});
           return {success:true,meta:{changes:1}};
         }
@@ -116,6 +116,16 @@ test("explicit sync stores an idempotent immutable snapshot scoped by identity, 
   assert.deepEqual((await response.json()).vault.snapshots,[]);
   response=await onRequestDelete({request:new Request(`https://pages.example/api/source-model-reviews?project_id=study-01&revision=381&snapshot_id=${snapshotId}`,{method:"DELETE",headers:otherHeaders}),env});
   assert.equal((await response.json()).deleted,false);
+  assert.equal(db.rows.length,1);
+});
+
+test("simultaneous identical saves converge on one idempotent snapshot",async(t)=>{
+  const {db,env,headers}=await configured(t);
+  const request=()=>onRequestPost({request:new Request("https://pages.example/api/source-model-reviews",{method:"POST",headers,body:JSON.stringify(sync)}),env});
+  const responses=await Promise.all([request(),request()]);
+  const bodies=await Promise.all(responses.map((response)=>response.json()));
+  assert.deepEqual(responses.map((response)=>response.status).sort(),[200,201]);
+  assert.equal(bodies.filter((body)=>body.duplicate===true).length,1);
   assert.equal(db.rows.length,1);
 });
 

@@ -125,10 +125,17 @@ export async function onRequestPost({ request, env }) {
       return json({ error:"This project revision has reached its private snapshot limit. Delete an older snapshot and retry." }, 413);
     const snapshot = { snapshot_id:crypto.randomUUID(), created_at:new Date().toISOString(),
       content_sha256:contentSha256, review_count:check.reviews.length };
-    await env.DB.prepare(
-      "INSERT INTO source_model_review_snapshots (user_email, project_id, project_revision, snapshot_id, created_at, content_sha256, review_count, reviews_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    const inserted = await env.DB.prepare(
+      "INSERT OR IGNORE INTO source_model_review_snapshots (user_email, project_id, project_revision, snapshot_id, created_at, content_sha256, review_count, reviews_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     ).bind(auth.identity.email, scope.projectId, scope.revision, snapshot.snapshot_id, snapshot.created_at,
       snapshot.content_sha256, snapshot.review_count, serialized).run();
+    if (inserted.success === false || (inserted.meta?.changes != null && Number(inserted.meta.changes) === 0)) {
+      const duplicate = await env.DB.prepare(
+        "SELECT snapshot_id, created_at, content_sha256, review_count FROM source_model_review_snapshots WHERE user_email = ? AND project_id = ? AND project_revision = ? AND content_sha256 = ?",
+      ).bind(auth.identity.email, scope.projectId, scope.revision, contentSha256).first();
+      if (duplicate) return json({ ok:true, duplicate:true, vault:vaultMetadata(scope, duplicate, check.reviews) });
+      return json({ error:"The source-model snapshot conflicted with an existing revision. Retry the save." }, 409);
+    }
     return json({ ok:true, duplicate:false, vault:vaultMetadata(scope, snapshot, check.reviews) }, 201);
   } catch { return json({ error:"Could not save the private source-model review snapshot to D1." }, 500); }
 }
