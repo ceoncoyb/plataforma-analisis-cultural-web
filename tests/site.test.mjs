@@ -418,7 +418,7 @@ test("academic reversioning page exposes editable local and private cloud revisi
   assert.match(page, /id="load-cloud"/);
   assert.match(app, /localStorage\.setItem\(VAULT_KEY/);
   assert.match(app, /guardar crea una revisión nueva/i);
-  assert.match(page, /No se sincroniza entre dispositivos ni se envía al servidor/);
+  assert.match(page, /El historial local no se sincroniza automáticamente entre dispositivos ni se envía al servidor hasta que actives la transferencia remota/);
 });
 
 
