@@ -14,7 +14,7 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
  function currentDocument(){return vault.documents.find(item=>item.document_id===documentId)||null;}
  function renderDocuments({ preferExisting = true } = {}){
    // A recovered archive may belong to a different browser/document ID.
-   if(vault.documents.length&&!currentDocument()){
+   if(preferExisting&&vault.documents.length&&!currentDocument()){
      documentId=vault.documents[0].document_id;
      localStorage.setItem("academic-reversioning-document-id",documentId);
    }
