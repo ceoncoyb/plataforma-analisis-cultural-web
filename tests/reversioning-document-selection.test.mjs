@@ -79,4 +79,18 @@ test("restoring a vault on another browser exposes its documents and preserves s
   versionSelect.value="remote-revision";
   await document.querySelector("#load-revision").fire("click");
   assert.equal(form.elements.title.value,"Artículo recuperado");
+
+  // A fresh browser has no Cloudflare Access cookie: the edge sends an opaque
+  // login redirect rather than a JSON API response. It must be a login prompt.
+  let calls=0;
+  browser.fetch=async (url,options)=>{
+    calls++;
+    assert.equal(url,"/api/article-drafts");
+    assert.equal(options.redirect,"manual");
+    return { type:"opaqueredirect", status:0 };
+  };
+  await document.querySelector("#load-cloud").fire("click");
+  assert.equal(calls,1);
+  assert.match(document.querySelector("#cloud-status").textContent,/Inicia sesión y reintenta/);
+  assert.equal(JSON.parse(saved.get("academic-reversioning-vault-v1")).documents.length,2);
 });
