@@ -1,9 +1,9 @@
 import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, serializeVault } from "/reversionados/revisions.mjs";
 (() => {
  const form=document.querySelector("#article-form"), output=document.querySelector("#article-output"), status=document.querySelector("#output-status"), download=document.querySelector("#download-article"), copy=document.querySelector("#copy-article");
- const revisionSelect=document.querySelector("#revision-select"), revisionStatus=document.querySelector("#revision-status");
+ const revisionSelect=document.querySelector("#revision-select"), revisionStatus=document.querySelector("#revision-status"), documentSelect=document.querySelector("#document-select");
  const VAULT_KEY="academic-reversioning-vault-v1";
- const documentId=localStorage.getItem("academic-reversioning-document-id")||crypto.randomUUID();
+ let documentId=localStorage.getItem("academic-reversioning-document-id")||crypto.randomUUID();
  localStorage.setItem("academic-reversioning-document-id",documentId);
  let parentRevisionId=null, vault=emptyVault();
  try{vault=parseVault(localStorage.getItem(VAULT_KEY));}catch{revisionStatus.textContent="El historial local no se pudo leer. Exporta una copia si la tienes antes de continuar.";}
@@ -12,6 +12,24 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
  const clean=value=>value.trim()||"Pendiente de especificación; no inferido automáticamente.";
  function currentFields(){return Object.fromEntries(fields.map(key=>[key,form.elements[key].value.trim()]));}
  function currentDocument(){return vault.documents.find(item=>item.document_id===documentId)||null;}
+ function renderDocuments(){
+   // A recovered archive may belong to a different browser/document ID.
+   if(vault.documents.length&&!currentDocument()){
+     documentId=vault.documents[0].document_id;
+     localStorage.setItem("academic-reversioning-document-id",documentId);
+   }
+   documentSelect.replaceChildren();
+   if(!currentDocument()){
+     const option=document.createElement("option");option.value=documentId;option.textContent="Documento nuevo (sin versiones)";
+     documentSelect.append(option);
+   }
+   for(const doc of vault.documents){
+     const option=document.createElement("option");option.value=doc.document_id;
+     option.textContent=(doc.title||"Sin título").slice(0,90)+" · "+doc.revisions.length+" versión(es)";
+     documentSelect.append(option);
+   }
+   documentSelect.value=documentId;
+ }
  function renderVersions(){
    const doc=currentDocument(), revisions=doc?.revisions||[];
    revisionSelect.replaceChildren();
@@ -32,7 +50,21 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
    const blob=new Blob([text],{type:mime});const url=URL.createObjectURL(blob);
    const a=document.createElement("a");a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);
  }
- renderVersions();
+ renderDocuments();renderVersions();
+ documentSelect.addEventListener("change",()=>{
+   documentId=documentSelect.value;localStorage.setItem("academic-reversioning-document-id",documentId);
+   parentRevisionId=null;form.reset();output.value="";download.disabled=true;copy.disabled=true;
+   renderVersions();
+   status.textContent="Documento seleccionado. Carga una versión para editarla.";
+   revisionStatus.textContent="Documento activo cambiado; los demás historiales se conservan.";
+ });
+ document.querySelector("#new-document").addEventListener("click",()=>{
+   documentId=crypto.randomUUID();localStorage.setItem("academic-reversioning-document-id",documentId);
+   parentRevisionId=null;form.reset();output.value="";download.disabled=true;copy.disabled=true;
+   renderDocuments();renderVersions();
+   status.textContent="Documento nuevo. Guarda la primera versión para añadirlo al archivo.";
+   revisionStatus.textContent="Los documentos anteriores siguen disponibles en el selector.";
+ });
  function makeDraft(){
    const values=Object.fromEntries(fields.map(key=>[key,clean(form.elements[key].value)]));
    const today=new Date().toISOString().slice(0,10);
@@ -46,7 +78,7 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
    try{
      const markdown=makeDraft(), fieldsNow=currentFields(), revisionId=crypto.randomUUID(), createdAt=new Date().toISOString();
      const next=appendRevision(vault,{documentId,revisionId,parentRevisionId,fields:fieldsNow,markdown,createdAt,sha256:await digest(markdown)});
-     localStorage.setItem(VAULT_KEY,serializeVault(next));vault=next;parentRevisionId=revisionId;output.value=markdown;download.disabled=false;copy.disabled=false;renderVersions();revisionSelect.value=revisionId;
+     localStorage.setItem(VAULT_KEY,serializeVault(next));vault=next;parentRevisionId=revisionId;output.value=markdown;download.disabled=false;copy.disabled=false;renderDocuments();renderVersions();revisionSelect.value=revisionId;
      revisionStatus.textContent="Versión v"+currentDocument().revisions.at(-1).version+" guardada en este navegador. Hash SHA-256: "+currentDocument().revisions.at(-1).sha256;
    }catch(error){revisionStatus.textContent="No se pudo guardar la versión local: "+error.message;}
  });
@@ -63,7 +95,7 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
    const file=event.target.files?.[0];if(!file)return;
    try{
      const incoming=parseVault(await file.text()), combined=mergeVaults(vault,incoming);
-     localStorage.setItem(VAULT_KEY,serializeVault(combined));vault=combined;renderVersions();
+     localStorage.setItem(VAULT_KEY,serializeVault(combined));vault=combined;renderDocuments();renderVersions();
      revisionStatus.textContent="Historial importado y combinado sin duplicar IDs de versión. Documentos: "+vault.documents.length+".";
    }catch(error){revisionStatus.textContent="No se pudo importar el historial: "+error.message;}
    finally{event.target.value="";}
@@ -105,7 +137,7 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
    try{
      const result=await cloudRequest("GET");
      const combined=mergeVaults(vault,result.vault);
-     localStorage.setItem(VAULT_KEY,serializeVault(combined));vault=combined;renderVersions();
+     localStorage.setItem(VAULT_KEY,serializeVault(combined));vault=combined;renderDocuments();renderVersions();
      cloudStatus.textContent="Historial recuperado y combinado en este navegador. Documentos: "+vault.documents.length+".";
    }catch(error){
      cloudStatus.textContent=error.login?"Cloudflare Access no autorizó esta sesión. Inicia sesión y reintenta.":
