@@ -61,7 +61,7 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
  document.querySelector("#new-document").addEventListener("click",()=>{
    documentId=crypto.randomUUID();localStorage.setItem("academic-reversioning-document-id",documentId);
    parentRevisionId=null;form.reset();output.value="";download.disabled=true;copy.disabled=true;
-   renderDocuments();renderVersions();
+   renderDocuments({preferExisting:false});renderVersions();
    status.textContent="Documento nuevo. Guarda la primera versión para añadirlo al archivo.";
    revisionStatus.textContent="Los documentos anteriores siguen disponibles en el selector.";
  });
