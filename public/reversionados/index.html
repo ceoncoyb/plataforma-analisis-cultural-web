@@ -49,7 +49,11 @@
 <label for="revision-select">Versiones guardadas</label><select id="revision-select" aria-label="Versiones guardadas"><option value="">Todavía no hay versiones locales</option></select>
 <div class="hero-cta"><button class="button button-dark" type="button" id="save-revision">Guardar como nueva versión</button><button class="button button-light" type="button" id="load-revision">Cargar versión seleccionada</button></div>
 <div class="hero-cta"><button class="button button-light" type="button" id="export-vault">Exportar archivo de versiones</button><button class="button button-light" type="button" id="import-vault-button">Importar archivo JSON</button><input id="import-vault" type="file" accept="application/json,.json" hidden></div>
-<p id="revision-status" aria-live="polite">Historial vacío en este navegador.</p></section>
+<p id="revision-status" aria-live="polite">Historial vacío en este navegador.</p>
+<hr><h4>Archivo privado en Cloudflare D1</h4>
+<p>Después de iniciar sesión mediante Cloudflare Access, puedes guardar y recuperar tus versiones desde la base privada del sitio. La transferencia ocurre solo al pulsar estos controles. El acceso remoto depende de la configuración de Access y del binding D1 en producción.</p>
+<div class="hero-cta"><a class="button button-light" href="/api/session?return_to=%2Freversionados%2F">Iniciar sesión con Cloudflare Access</a><button class="button button-dark" type="button" id="sync-cloud">Guardar historial en Cloudflare</button><button class="button button-light" type="button" id="load-cloud">Recuperar historial de Cloudflare</button></div>
+<p id="cloud-status" aria-live="polite">Guardado privado pendiente de verificar en producción. El historial local sigue disponible.</p></section>
 </div></div></section>
 <section class="section section-ink"><div class="container"><div class="section-head"><div><span class="eyebrow eyebrow-light">Criterios de uso</span><h2>Un borrador no es un artículo validado.</h2></div><p>La estructura facilita la revisión. La validez científica depende de un problema investigable, método transparente, evidencia pertinente y escrutinio disciplinar.</p></div>
 <div class="trust-grid"><article class="trust-item"><b>No inventar resultados</b><p>Los campos vacíos quedan como pendientes. Las referencias y citas deben verificarse en sus fuentes originales.</p></article><article class="trust-item"><b>No confundir procedencia con prueba</b><p>Un hash permite comprobar integridad de un archivo; no demuestra por sí solo autoría, permiso, veracidad ni calidad metodológica.</p></article><article class="trust-item"><b>Separar estados</b><p>Fuente privada, derivación interna, borrador auditado y versión pública son estados distintos; el DOI corresponde a un depósito publicado.</p></article></div>
@@ -127,6 +131,50 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
      revisionStatus.textContent="Historial importado y combinado sin duplicar IDs de versión. Documentos: "+vault.documents.length+".";
    }catch(error){revisionStatus.textContent="No se pudo importar el historial: "+error.message;}
    finally{event.target.value="";}
+ });
+ async function cloudRequest(method,body){
+   const response=await fetch("/api/article-drafts",{method,credentials:"same-origin",cache:"no-store",
+     headers:body?{"content-type":"application/json"}:{},body:body?JSON.stringify(body):undefined});
+   const type=response.headers.get("content-type")||"";
+   if(!type.includes("application/json"))throw Object.assign(new Error("Cloudflare Access requiere iniciar sesión."),{login:true});
+   const payload=await response.json();
+   if(!response.ok)throw Object.assign(new Error(payload.error||("Cloudflare respondió "+response.status)),{status:response.status,login:response.status===401||response.status===403});
+   return payload;
+ }
+ document.querySelector("#sync-cloud").addEventListener("click",async event=>{
+   const button=event.currentTarget, cloudStatus=document.querySelector("#cloud-status");
+   if(!vault.documents.some(doc=>doc.revisions.length)){cloudStatus.textContent="No hay versiones guardadas para enviar.";return;}
+   button.disabled=true;cloudStatus.textContent="Enviando versiones seleccionadas a tu archivo privado de Cloudflare…";
+   try{
+     let saved=0;
+     for(const doc of vault.documents){
+       for(const revision of [...doc.revisions].sort((a,b)=>a.version-b.version||a.created_at.localeCompare(b.created_at))){
+         const result=await cloudRequest("POST",{document_id:doc.document_id,revision_id:revision.revision_id,
+           parent_revision_id:revision.parent_revision_id||null,version:revision.version,
+           title:String(revision.fields.title||doc.title||"Borrador sin título"),fields:revision.fields,
+           markdown:revision.markdown,sha256:revision.sha256});
+         if(!result.ok)throw new Error("La API no confirmó el guardado de una versión.");
+         saved++;
+       }
+     }
+     cloudStatus.textContent=saved+" versión(es) sincronizadas con D1 privada. Las fuentes originales y otros archivos no se enviaron.";
+   }catch(error){
+     cloudStatus.textContent=error.login?"Cloudflare Access no autorizó esta sesión. Inicia sesión y reintenta; el historial local permanece intacto.":
+       "No se completó la sincronización: "+error.message+" El historial local permanece intacto.";
+   }finally{button.disabled=false;}
+ });
+ document.querySelector("#load-cloud").addEventListener("click",async event=>{
+   const button=event.currentTarget, cloudStatus=document.querySelector("#cloud-status");
+   button.disabled=true;cloudStatus.textContent="Consultando el archivo privado de Cloudflare…";
+   try{
+     const result=await cloudRequest("GET");
+     const combined=mergeVaults(vault,result.vault);
+     localStorage.setItem(VAULT_KEY,serializeVault(combined));vault=combined;renderVersions();
+     cloudStatus.textContent="Historial recuperado y combinado en este navegador. Documentos: "+vault.documents.length+".";
+   }catch(error){
+     cloudStatus.textContent=error.login?"Cloudflare Access no autorizó esta sesión. Inicia sesión y reintenta.":
+       "No se pudo recuperar el historial: "+error.message;
+   }finally{button.disabled=false;}
  });
 })();
 </script>
