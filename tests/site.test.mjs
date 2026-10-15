@@ -7,6 +7,7 @@ import vm from "node:vm";
 import { createHash } from "node:crypto";
 import { projectExportToMultimodalReviewManifest, validateCandidateDecision, loadReviewDraft, saveReviewDraft, createReviewExport } from "../public/laboratorio/multimodal-review.mjs";
 import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, serializeVault } from "../public/reversionados/revisions.mjs";
+import { onRequestGet as getArticleDrafts, onRequestPost as postArticleDraft } from "../functions/api/article-drafts.js";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (path) => readFile(join(root, "public", path), "utf8");
@@ -414,4 +415,20 @@ test("academic reversioning page exposes create, load, export, and import contro
   assert.match(page, /localStorage\.setItem\(VAULT_KEY/);
   assert.match(page, /guardar crea una revisión nueva/i);
   assert.match(page, /No se sincroniza entre dispositivos ni se envía al servidor/);
+});
+
+
+test("private Cloudflare article archive fails closed until Access authorizes the user", async () => {
+  let databaseTouches = 0;
+  const env = { DB: { prepare() { databaseTouches++; throw new Error("must not reach DB"); } } };
+  const get = await getArticleDrafts({ request: new Request("https://example.test/api/article-drafts"), env });
+  assert.equal(get.status, 503, "missing Access configuration is reported, not treated as an anonymous writable service");
+  const post = await postArticleDraft({
+    request: new Request("https://example.test/api/article-drafts", {
+      method: "POST", headers: { "content-type": "application/json", origin: "https://example.test" }, body: "{}",
+    }),
+    env: { ...env, CF_ACCESS_TEAM_DOMAIN: "team.cloudflareaccess.com", CF_ACCESS_AUD: "aud", CF_ACCESS_ALLOWED_EMAILS: "owner@example.com" },
+  });
+  assert.equal(post.status, 401, "a configured API still requires a verified Access JWT");
+  assert.equal(databaseTouches, 0, "unauthorized access never reaches D1");
 });
