@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  validateModelReview, validateModelReviewExport, saveModelReviews, loadModelReviews, modelReviewStorageKey, modelReviewExport, declaredModelSources,
+  validateModelReview, validateModelReviewExport, saveModelReviews, loadModelReviews, modelReviewStorageKey, modelReviewExport, declaredModelSources, sourceFigureGate,
 } from "../public/laboratorio/theory-review.mjs";
 
 const project = {
@@ -115,4 +115,17 @@ test("declared academic models link only to matching imported bibliography and n
   assert.equal(index[0].declared_locator,"49, 57");
   assert.equal(index[0].status,"DECLARED_NOT_VISUALLY_VERIFIED_BY_SITE");
   assert.deepEqual(declaredModelSources({...project,analysis_modules:[]}),[]);
+});
+
+test("declared source-figure gate restricts theoretical source choices and rejects an incomplete declaration",()=>{
+  const gated={...project,integrity_contract:{source_figure_provenance_gate:{
+    theory_module_id:"SOURCE_FIGURE_THEORY_QA_GATE_20261015",required_model_source_ids:["SRC-GC","SRC-SECOND"],
+  }},analysis_modules:[{id:"SOURCE_FIGURE_THEORY_QA_GATE_20261015",source_models:[{source_id:"SRC-GC"}],additional_sources:[{source_id:"SRC-SECOND"}]}],
+    sources:[...project.sources,{id:"SRC-SECOND",title:"Second source"},{id:"SRC-OTHER",title:"Other bibliography"}]};
+  assert.deepEqual(sourceFigureGate(gated),{required:true,ready:true,modelSourceIds:["SRC-GC","SRC-SECOND"],requiredModelSourceIds:["SRC-GC","SRC-SECOND"]});
+  assert.equal(validateModelReview(ready,gated).ok,true);
+  assert.ok(validateModelReview({...ready,source_id:"SRC-OTHER"},gated).issues.some((issue)=>issue.includes("puerta de procedencia")));
+  const incomplete={...gated,analysis_modules:[{id:"SOURCE_FIGURE_THEORY_QA_GATE_20261015",source_models:[{source_id:"SRC-GC"}]}]};
+  assert.equal(sourceFigureGate(incomplete).ready,false);
+  assert.ok(validateModelReview(ready,incomplete).issues.some((issue)=>issue.includes("está incompleta")));
 });

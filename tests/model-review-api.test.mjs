@@ -131,6 +131,20 @@ test("server rejects cross-origin writes and mismatched source, unit or evidence
   assert.equal(db.rows.length,0);
 });
 
+test("server enforces a declared source-figure model gate when enabled",async(t)=>{
+  const {db,env,headers}=await configured(t);
+  const sameOriginHeaders={...headers,origin:"https://pages.example"};
+  const gated={...sync,references:{...sync.references,model_gate_required:true,model_source_ids:[]}};
+  let response=await onRequestPost({request:new Request("https://pages.example/api/source-model-reviews",{method:"POST",headers:sameOriginHeaders,body:JSON.stringify(gated)}),env});
+  assert.equal(response.status,400);
+  assert.match((await response.json()).issues.join(" "),/puerta metodológica requiere fuentes/);
+  assert.equal(db.calls.length,0);
+  const validGated={...sync,references:{...sync.references,model_gate_required:true,model_source_ids:["SRC-GC"],required_model_source_ids:["SRC-GC"]}};
+  response=await onRequestPost({request:new Request("https://pages.example/api/source-model-reviews",{method:"POST",headers:sameOriginHeaders,body:JSON.stringify(validGated)}),env});
+  assert.equal(response.status,201);
+  assert.equal(db.rows.length,1);
+});
+
 test("methodological guardrails remain server-side and snapshots can be deleted one at a time",async(t)=>{
   const {db,env,headers}=await configured(t);
   const invalidReview={...review,operation:"semiotic_square"};
@@ -151,7 +165,7 @@ test("methodological guardrails remain server-side and snapshots can be deleted 
 
 test("browser sync payload sends identifiers only in its reference index",()=>{
   const request=createModelReviewSyncRequest(document,project);
-  assert.deepEqual(request.references,{source_ids:["SRC-GC"],unit_ids:["I01","I02"],evidence:[{id:"EV01",unit_id:"I01"},{id:"EV02",unit_id:"I02"}]});
+  assert.deepEqual(request.references,{source_ids:["SRC-GC"],model_gate_required:false,model_source_ids:[],required_model_source_ids:[],unit_ids:["I01","I02"],evidence:[{id:"EV01",unit_id:"I01"},{id:"EV02",unit_id:"I02"}]});
   assert.equal(Object.hasOwn(request.references,"sources"),false);
   assert.equal(JSON.stringify(request.references).includes("García Contto"),false);
   assert.equal(JSON.stringify(request.references).includes("EV01"),true);

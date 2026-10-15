@@ -60,6 +60,11 @@ export function validateModelReview(value, project) {
   const unit = text(value.unit_id);
   const second = text(value.comparison_unit_id);
   if (!source) issues.push("Selecciona una fuente registrada en el proyecto importado.");
+  const sourceGate = sourceFigureGate(project);
+  if (sourceGate.required && !sourceGate.ready)
+    issues.push("La puerta de procedencia de figuras/tablas está incompleta: vincula todas las fuentes teóricas requeridas en el módulo declarado.");
+  if (sourceGate.required && !sourceGate.modelSourceIds.includes(text(value.source_id)))
+    issues.push("Selecciona una fuente teórica incluida en la puerta de procedencia de figuras/tablas.");
   if (!unit || !units.has(unit)) issues.push("Selecciona una unidad existente del corpus.");
   if (second && (!units.has(second) || second === unit)) issues.push("La unidad comparada debe existir y ser distinta.");
   if (!OPERATIONS.has(op)) issues.push("Selecciona una operación metodológica admitida.");
@@ -85,6 +90,23 @@ export function validateModelReview(value, project) {
       issues.push("La comparación simbólica/mítica requiere otra unidad y una constelación de relaciones, no un objeto aislado.");
   }
   return { ok:!issues.length, issues };
+}
+export function sourceFigureGate(project) {
+  const gate=project?.integrity_contract?.source_figure_provenance_gate;
+  if (!gate) return { required:false, ready:true, modelSourceIds:[], requiredModelSourceIds:[] };
+  const moduleId=text(gate.theory_module_id);
+  const module=array(project?.analysis_modules).find((item)=>String(item?.id||"")===moduleId);
+  const moduleIds=new Set([
+    ...array(module?.source_models),...array(module?.additional_sources),...(module?.source_id?[module]:[]),
+  ].map((model)=>text(model?.source_id)).filter(Boolean));
+  const sourceIds=new Set(array(project?.sources).map((item)=>String(item?.id||"")));
+  const requiredIds=array(gate.required_model_source_ids).map(String);
+  const uniqueIds=new Set(requiredIds);
+  const ready=Boolean(moduleId&&module&&requiredIds.length>0&&uniqueIds.size===requiredIds.length&&
+    requiredIds.every((id)=>moduleIds.has(id)&&sourceIds.has(id)));
+  return { required:true, ready,
+    modelSourceIds:requiredIds.filter((id)=>moduleIds.has(id)&&sourceIds.has(id)),
+    requiredModelSourceIds:requiredIds };
 }
 // Read models only from this project's declaration. A declaration is NOT visual
 // verification of the cited source. Never fabricate pages, figures or source IDs.
@@ -213,7 +235,8 @@ function renderDeclaredModels() {
   const el=select("#model-suggestion-list");
   if (!el || !ctx) return;
   el.replaceChildren();
-  const suggestions=declaredModelSources(ctx.project);
+  const gate=sourceFigureGate(ctx.project);
+  const suggestions=declaredModelSources(ctx.project).filter((item)=>!gate.required||gate.modelSourceIds.includes(item.source_id));
   const count=select("#model-suggestion-count");
   if(count)count.textContent=String(suggestions.length);
   const parent=select("#model-source-suggestions");
@@ -244,7 +267,8 @@ export function mountModelReview(exported, revision) {
   const project = exported?.project?.units ? exported.project : exported;
   if (!project || !Array.isArray(project.units) || !project.id) return;
   ctx = { project,revision };
-  const sources = array(project.sources).filter((s)=>s && s.id)
+  const gate=sourceFigureGate(project);
+  const sources = array(project.sources).filter((s)=>s && s.id&&(!gate.required||gate.modelSourceIds.includes(String(s.id))))
     .map((s)=>[String(s.id),String(s.title || s.name || s.citation || s.id).slice(0,140)]);
   const units = array(project.units).filter((u)=>u && u.id)
     .map((u)=>[String(u.id),String(u.id)+" · "+String(u.label || u.type || "").slice(0,80)]);
@@ -253,8 +277,9 @@ export function mountModelReview(exported, revision) {
   appendOptions(field("comparison"),units,"Sin comparación de unidades","");
   refreshEvidence();renderReviews();renderDeclaredModels();
   select("#model-review-panel").hidden=false;
-  status(sources.length ? "Modelos y evidencias deben cotejarse manualmente. No se importa ninguna imagen de libros automáticamente."
-    : "Esta exportación no contiene fuentes; añade fuentes al proyecto antes de validar modelos.",!sources.length);
+  status(gate.required&&!gate.ready ? "La puerta de procedencia de figuras/tablas está incompleta. Completa las fuentes teóricas declaradas antes de registrar cotejos."
+    : sources.length ? (gate.required ? `Puerta de procedencia activa: ${sources.length} fuentes teóricas autorizadas para el cotejo. Verifica edición, páginas, figura/tabla y evidencia del corpus.` : "Modelos y evidencias deben cotejarse manualmente. No se importa ninguna imagen de libros automáticamente.")
+    : "Esta exportación no contiene fuentes; añade fuentes al proyecto antes de validar modelos.",!sources.length||(gate.required&&!gate.ready));
 }
 export function suggestModelUnit(id) {
   if (!ctx || !field("unit")) return;

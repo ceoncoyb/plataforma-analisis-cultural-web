@@ -1,3 +1,5 @@
+import { sourceFigureGate } from "./theory-review.mjs";
+
 export const MODEL_REVIEW_SYNC_SCHEMA = "analysis-cultural/source-model-review-sync/v1";
 export const MODEL_REVIEW_VAULT_SCHEMA = "analysis-cultural/source-model-review-vault/v1";
 
@@ -11,11 +13,15 @@ export function createModelReviewSyncRequest(document, project) {
   const sources = Array.isArray(project?.sources) ? project.sources : [];
   const units = Array.isArray(project?.units) ? project.units : [];
   const evidence = Array.isArray(project?.evidence) ? project.evidence : [];
+  const gate = sourceFigureGate(project);
   return {
     schema:MODEL_REVIEW_SYNC_SCHEMA,
     document,
     references:{
       source_ids:sources.map((item)=>String(item?.id ?? "")).filter(Boolean),
+      model_gate_required:gate.required,
+      model_source_ids:gate.modelSourceIds,
+      required_model_source_ids:gate.requiredModelSourceIds,
       unit_ids:units.map((item)=>String(item?.id ?? "")).filter(Boolean),
       evidence:evidence.map((item)=>({ id:String(item?.id ?? ""), unit_id:String(item?.unit_id ?? "") }))
         .filter((item)=>item.id && item.unit_id),

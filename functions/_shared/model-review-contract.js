@@ -32,13 +32,15 @@ const nonempty = (value) => typeof value === "string" && value.trim().length > 0
 
 function validateReferences(references) {
   const issues = [];
-  const allowed = new Set(["source_ids", "unit_ids", "evidence"]);
+  const allowed = new Set(["source_ids", "model_gate_required", "model_source_ids", "required_model_source_ids", "unit_ids", "evidence"]);
   if (!isRecord(references) || !exactKeys(references, allowed) ||
       !Array.isArray(references.source_ids) || !Array.isArray(references.unit_ids) ||
+      typeof references.model_gate_required !== "boolean" || !Array.isArray(references.model_source_ids) ||
+      !Array.isArray(references.required_model_source_ids) ||
       !Array.isArray(references.evidence)) {
-    return { issues:["El índice efímero de referencias no cumple el contrato v1."], sources:new Set(), units:new Set(), evidence:new Map() };
+    return { issues:["El índice efímero de referencias no cumple el contrato v1."], sources:new Set(), modelSources:new Set(), requiredModelSources:new Set(), modelGateRequired:false, units:new Set(), evidence:new Map() };
   }
-  if (references.source_ids.length > 2500 || references.unit_ids.length > 2500 || references.evidence.length > 5000)
+  if (references.source_ids.length > 2500 || references.model_source_ids.length > 2500 || references.required_model_source_ids.length > 2500 || references.unit_ids.length > 2500 || references.evidence.length > 5000)
     issues.push("El índice de referencias supera el límite permitido.");
   const sources = new Set();
   const units = new Set();
@@ -47,6 +49,22 @@ function validateReferences(references) {
     if (!nonempty(id) || id.length > 200 || sources.has(id)) issues.push("El índice contiene una fuente vacía, extensa o duplicada.");
     else sources.add(id);
   }
+  const modelSources = new Set();
+  for (const id of references.model_source_ids) {
+    if (!nonempty(id) || id.length > 200 || modelSources.has(id) || !sources.has(id))
+      issues.push("El índice de modelos contiene una fuente vacía, duplicada o ausente en la bibliografía importada.");
+    else modelSources.add(id);
+  }
+  const requiredModelSources = new Set();
+  for (const id of references.required_model_source_ids) {
+    if (!nonempty(id) || id.length > 200 || requiredModelSources.has(id) || !modelSources.has(id))
+      issues.push("La declaración de puerta metodológica incluye un modelo ausente o duplicado en el módulo importado.");
+    else requiredModelSources.add(id);
+  }
+  if (references.model_gate_required && (!modelSources.size || !requiredModelSources.size || requiredModelSources.size !== references.required_model_source_ids.length))
+    issues.push("La puerta metodológica requiere fuentes teóricas declaradas para el cotejo.");
+  if (!references.model_gate_required && (modelSources.size || requiredModelSources.size))
+    issues.push("El índice incluye modelos declarados sin una puerta metodológica activa.");
   for (const id of references.unit_ids) {
     if (!nonempty(id) || id.length > 200 || units.has(id)) issues.push("El índice contiene una unidad vacía, extensa o duplicada.");
     else units.add(id);
@@ -60,7 +78,7 @@ function validateReferences(references) {
     evidence.set(item.id, item.unit_id);
   }
   for (const unitId of evidence.values()) if (!units.has(unitId)) issues.push("El índice vincula evidencia a una unidad inexistente.");
-  return { issues, sources, units, evidence };
+  return { issues, sources, modelSources, requiredModelSources, modelGateRequired:references.model_gate_required, units, evidence };
 }
 
 function validateReview(review, document, references, index) {
@@ -80,6 +98,8 @@ function validateReview(review, document, references, index) {
   if (review.project_id !== document.project_id || review.project_revision !== document.project_revision)
     issues.push(prefix + "el proyecto o la revisión no coincide con el documento.");
   if (!index.sources.has(review.source_id)) issues.push(prefix + "la fuente no aparece en el índice del estudio importado.");
+  if (index.modelGateRequired && !index.requiredModelSources.has(review.source_id))
+    issues.push(prefix + "la fuente no está incluida en la puerta metodológica de figuras/tablas.");
   if (!index.units.has(review.unit_id)) issues.push(prefix + "la unidad no aparece en el índice del estudio importado.");
   if (review.comparison_unit_id && (!index.units.has(review.comparison_unit_id) || review.comparison_unit_id === review.unit_id))
     issues.push(prefix + "la unidad comparada debe existir y ser distinta de la principal.");
