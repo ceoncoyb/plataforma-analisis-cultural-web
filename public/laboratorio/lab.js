@@ -2,7 +2,8 @@ import {
   projectExportToMultimodalReviewManifest, validateCandidateDecision,
   loadReviewDraft, saveReviewDraft, createReviewExport, toSeconds,
 } from "/laboratorio/multimodal-review.mjs";
-import { bindModelReviewUi, mountModelReview, suggestModelUnit } from "/laboratorio/theory-review.mjs";
+import { bindModelReviewUi, mountModelReview, suggestModelUnit, loadModelReviews, saveModelReviews, modelReviewExport, validateModelReview } from "/laboratorio/theory-review.mjs";
+import { createModelReviewSyncRequest, sourceModelReviewUrl, validateModelReviewVault } from "/laboratorio/model-review-sync.mjs";
 
 const $ = (s) => document.querySelector(s);
 const state = { source: null, project: null, manifest: null, media: null, mediaUrl: null, mediaIdentity: "unknown", mediaHash: null, draft: { annotations: [], cut_candidate_decisions: [] }, selected: null, frameUrl: null, frameTimer: null };
@@ -53,6 +54,89 @@ async function cloudRequest(method,body) {
   const payload=await response.json();
   if(!response.ok)throw Object.assign(new Error(payload.error||`Cloudflare D1 returned ${response.status}.`),{status:response.status,login:response.status===401||response.status===403});
   return payload;
+}
+function setModelSyncStatus(message,{error=false,login=false}={}) {
+  const status=$("#model-sync-status");if(status){status.textContent=message;status.style.color=error?"#a6483f":"";}
+  const link=$("#model-connect-cloudflare");if(link)link.hidden=!login;
+}
+async function modelSyncRequest(method,snapshotId="",body=null) {
+  const url=sourceModelReviewUrl(state.manifest.project_id,state.manifest.revision,snapshotId);
+  const response=await fetch(url,{method,credentials:"same-origin",cache:"no-store",
+    headers:body?{"content-type":"application/json"}:{},body:body?JSON.stringify(body):undefined});
+  const type=response.headers.get("content-type")||"";
+  if(!type.includes("application/json"))throw Object.assign(new Error("Inicia sesión mediante Cloudflare Access para consultar D1."),{login:true});
+  const payload=await response.json();
+  if(!response.ok)throw Object.assign(new Error(payload.error||`D1 respondió ${response.status}.`),{status:response.status,login:response.status===401||response.status===403});
+  return payload;
+}
+function resetModelSnapshots() {
+  const selector=$("#model-sync-snapshot");if(selector)selector.replaceChildren();
+  const controls=$("#model-snapshot-controls");if(controls)controls.hidden=true;
+  const ready=Boolean(state.manifest?.project_id);
+  for(const id of ["#model-sync-save","#model-sync-list"]) {const el=$(id);if(el)el.disabled=!ready;}
+  setModelSyncStatus(ready?"Los cotejos permanecen locales hasta elegir una acción de D1; la certificación interpretativa se conserva como NO EVALUADA.":"La exportación no contiene un ID de proyecto; los cotejos quedan locales.");
+}
+function renderModelSnapshots(snapshots,selectedId="") {
+  const selector=$("#model-sync-snapshot");if(!selector)return;
+  selector.replaceChildren();
+  for(const snapshot of snapshots||[]) {
+    const option=document.createElement("option");option.value=String(snapshot.snapshot_id);
+    option.textContent=`${snapshot.created_at} · ${snapshot.review_count} cotejo(s) · ${String(snapshot.content_sha256).slice(0,12)}`;
+    option.dataset.createdAt=String(snapshot.created_at||"");option.dataset.sha256=String(snapshot.content_sha256||"");option.dataset.reviewCount=String(snapshot.review_count||0);
+    selector.append(option);
+  }
+  if(selectedId&&[...selector.options].some((option)=>option.value===selectedId))selector.value=selectedId;
+  const available=selector.options.length>0;
+  $("#model-snapshot-controls").hidden=!available;
+}
+async function saveModelReviewSnapshot() {
+  if(!state.project||!state.manifest?.project_id){setModelSyncStatus("La exportación necesita un ID de proyecto para guardar un snapshot.",{error:true});return;}
+  try {
+    const reviews=loadModelReviews(localStorage,state.project.id,state.manifest.revision);
+    const document=modelReviewExport(state.project,state.manifest.revision,reviews);
+    const request=createModelReviewSyncRequest(document,state.project);
+    const result=await modelSyncRequest("POST","",request);
+    const vault=validateModelReviewVault(result,state.manifest.project_id,state.manifest.revision);
+    const snapshot={snapshot_id:vault.snapshot_id,created_at:vault.created_at,content_sha256:vault.content_sha256,review_count:vault.review_count};
+    const selector=$("#model-sync-snapshot"),existing=[...selector.options].map((option)=>({snapshot_id:option.value,created_at:option.dataset.createdAt||option.textContent.split(" · ")[0],content_sha256:option.dataset.sha256||"",review_count:Number(option.dataset.reviewCount||0)}));
+    renderModelSnapshots([snapshot,...existing.filter((row)=>row.snapshot_id!==snapshot.snapshot_id)],snapshot.snapshot_id);
+    setModelSyncStatus(`${result.duplicate?"Snapshot ya existente":"Snapshot guardado"} en D1 · ${vault.review_count} cotejo(s) · ${vault.created_at}. El MCP privado queda intacto; interpretación NO EVALUADA.`);
+  } catch(error) {setModelSyncStatus(error.message,{error:true,login:Boolean(error.login)});}
+}
+async function listModelReviewSnapshots() {
+  if(!state.project||!state.manifest?.project_id){setModelSyncStatus("La exportación necesita un ID de proyecto para consultar snapshots.",{error:true});return;}
+  try {
+    const result=await modelSyncRequest("GET");
+    const vault=validateModelReviewVault(result,state.manifest.project_id,state.manifest.revision);
+    renderModelSnapshots(vault.snapshots||[]);
+    setModelSyncStatus(vault.snapshots?.length?`${vault.snapshots.length} snapshot(s) disponibles para este proyecto y revisión.`:"No hay snapshots guardados para este proyecto y revisión.");
+  } catch(error) {setModelSyncStatus(error.message,{error:true,login:Boolean(error.login)});}
+}
+async function restoreModelReviewSnapshot() {
+  const snapshotId=$("#model-sync-snapshot")?.value;
+  if(!snapshotId||!state.project)return;
+  try {
+    const result=await modelSyncRequest("GET",snapshotId);
+    const vault=validateModelReviewVault(result,state.manifest.project_id,state.manifest.revision);
+    if(vault.stored_in_cloudflare_d1!==true||!Array.isArray(vault.reviews))throw new Error("El snapshot recuperado no cumple el contrato de almacenamiento.");
+    for(const review of vault.reviews) {
+      const check=validateModelReview(review,state.project);
+      if(!check.ok)throw new Error("El snapshot contiene referencias que ya no coinciden con el proyecto importado: "+check.issues.join(" "));
+    }
+    const local=loadModelReviews(localStorage,state.project.id,state.manifest.revision),merged=new Map(vault.reviews.map((row)=>[row.id,row]));
+    for(const row of local) {const current=merged.get(row.id);if(!current||Date.parse(row.reviewed_at||"")>=Date.parse(current.reviewed_at||""))merged.set(row.id,row);}
+    const rows=[...merged.values()];saveModelReviews(localStorage,state.project.id,state.manifest.revision,rows);mountModelReview(state.source,state.manifest.revision);
+    setModelSyncStatus(`${vault.reviews.length} cotejo(s) recuperados a este navegador; ${rows.length} registro(s) locales combinados. No se modificó el proyecto fuente ni el MCP.`);
+  } catch(error) {setModelSyncStatus(error.message,{error:true,login:Boolean(error.login)});}
+}
+async function deleteModelReviewSnapshot() {
+  const snapshotId=$("#model-sync-snapshot")?.value;
+  if(!snapshotId||!state.project||!window.confirm("¿Eliminar de D1 solo el snapshot seleccionado? Los cotejos locales y otros snapshots se conservarán."))return;
+  try {
+    const result=await modelSyncRequest("DELETE",snapshotId);
+    await listModelReviewSnapshots();
+    setModelSyncStatus(result.deleted?"Snapshot eliminado de D1. La copia local y los demás snapshots permanecen.":"El snapshot ya no existe en D1. La copia local permanece.");
+  } catch(error) {setModelSyncStatus(error.message,{error:true,login:Boolean(error.login)});}
 }
 function queueCloudWrite(key=scopeKey()) {
   cloudQueue=cloudQueue.catch(()=>{}).then(async()=>{
@@ -222,6 +306,7 @@ function renderProject(source){
   $("#source-meta").textContent=`Proyecto ${state.manifest.project_id||"(sin ID)"} · revisión ${revision??"sin versión"} · importado desde archivo local · no hay conexión de escritura al MCP.`;
   renderCounts();state.draft=loadReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision);renderTree();renderCandidates();renderDraft();
   mountModelReview(state.source,state.manifest.revision);
+  resetModelSnapshots();
   if(state.project.cut_candidates?.length!==state.manifest.cut_candidates.length)setStatus("Se eliminaron IDs de candidatos duplicados durante la vista de revisión; el archivo original no se modificó.");else setStatus("Exportación leída. Verifica la revisión y selecciona el medio local antes de guardar cotejos.");
   setCloudStatus("Comprobando acceso protegido a D1…");loadCloudDraft();
   if(state.media)loadMedia(state.media);
@@ -236,5 +321,9 @@ $("#delete-cloud-draft").addEventListener("click",async()=>{
 });
 $("#export-review").addEventListener("click",()=>{if(!state.manifest)return;const annotations=state.draft.annotations;const result=createReviewExport(state.manifest,state.source,annotations,state.draft.cut_candidate_decisions);const blob=new Blob([JSON.stringify(result,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`revision-${(state.manifest.project_id||"proyecto").replace(/[^a-z0-9_-]/gi,"-")}-r${state.manifest.revision??"sin-version"}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setStatus("Revisión exportada como archivo separado. La fuente del plugin sigue intacta.");});
 bindModelReviewUi();
+$("#model-sync-save").addEventListener("click",saveModelReviewSnapshot);
+$("#model-sync-list").addEventListener("click",listModelReviewSnapshots);
+$("#model-sync-restore").addEventListener("click",restoreModelReviewSnapshot);
+$("#model-sync-delete").addEventListener("click",deleteModelReviewSnapshot);
 $("#no-script").hidden=true;
 
