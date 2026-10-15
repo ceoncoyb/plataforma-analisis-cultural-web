@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { createHash } from "node:crypto";
 import { projectExportToMultimodalReviewManifest, validateCandidateDecision, loadReviewDraft, saveReviewDraft, createReviewExport } from "../public/laboratorio/multimodal-review.mjs";
+import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, serializeVault } from "../public/reversionados/revisions.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (path) => readFile(join(root, "public", path), "utf8");
@@ -379,4 +380,38 @@ test("controlled academic reversioning route provides a local-only auditable dra
   assert.match(page, /No se ha guardado ni enviado/);
   assert.match(css, /\.revision-workbench/);
   assert.match(page, /Revisión y aprobación autoral documentadas/);
+});
+
+
+test("academic reversioning saves immutable local revisions and imports history without duplicating revision IDs", () => {
+  const fields1 = { title: "Estudio inicial", question: "¿Qué se transforma?", problem: "Problema A" };
+  const first = appendRevision(emptyVault(), {
+    documentId: "doc-1", revisionId: "rev-1", fields: fields1, markdown: "# v1", createdAt: "2026-10-15T10:00:00Z", sha256: "abc",
+  });
+  const fields2 = { ...fields1, problem: "Problema revisado" };
+  const second = appendRevision(first, {
+    documentId: "doc-1", revisionId: "rev-2", parentRevisionId: "rev-1", fields: fields2, markdown: "# v2", createdAt: "2026-10-15T11:00:00Z", sha256: "def",
+  });
+  assert.equal(first.documents[0].revisions.length, 1, "saving v2 does not mutate v1");
+  assert.equal(second.documents[0].revisions[1].version, 2);
+  assert.equal(second.documents[0].revisions[1].parent_revision_id, "rev-1");
+  assert.equal(selectRevision(second, "doc-1", "rev-1").fields.problem, "Problema A");
+  const imported = parseVault(serializeVault(second));
+  const merged = mergeVaults(second, imported);
+  assert.equal(merged.documents[0].revisions.length, 2, "importing an existing archive does not duplicate revisions");
+  assert.throws(() => appendRevision(second, {
+    documentId: "doc-1", revisionId: "rev-3", parentRevisionId: "missing", fields: fields2, markdown: "# v3", createdAt: "2026-10-15T12:00:00Z", sha256: "ghi",
+  }), /no pertenece/);
+  assert.throws(() => parseVault({ schema: "wrong", documents: [] }), /formato/);
+});
+
+test("academic reversioning page exposes create, load, export, and import controls with local-only persistence", async () => {
+  const page = await read("reversionados/index.html");
+  assert.match(page, /id="save-revision"/);
+  assert.match(page, /id="load-revision"/);
+  assert.match(page, /id="export-vault"/);
+  assert.match(page, /id="import-vault"/);
+  assert.match(page, /localStorage\.setItem\(VAULT_KEY/);
+  assert.match(page, /guardar crea una revisión nueva/i);
+  assert.match(page, /No se sincroniza entre dispositivos ni se envía al servidor/);
 });
