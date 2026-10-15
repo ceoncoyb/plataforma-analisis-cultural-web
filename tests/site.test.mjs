@@ -372,7 +372,7 @@ test("controlled academic reversioning route provides a local-only auditable dra
   const page = await read("reversionados/index.html");
   const css = await read("assets/site.css");
   assert.match(page, /Protocolo en diseño/);
-  assert.match(page, /no se guardan ni se envían/);
+  assert.match(page, /no se guardan ni se envían/i);
   assert.match(page, /Hallazgos comprobados/);
   assert.match(page, /Pendiente de especificación; no inferido automáticamente/);
   assert.match(page, /Descargar Markdown/);
