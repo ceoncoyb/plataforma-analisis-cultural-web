@@ -7,6 +7,23 @@ const OPERATIONS = new Set([
   "semiotic_square", "other",
 ]);
 const STATUSES = new Set(["draft", "source_checked", "evidence_checked", "ready_for_human_review"]);
+const REVIEW_FIELDS = new Set([
+  "id", "project_id", "project_revision", "source_id", "source_title", "unit_id",
+  "comparison_unit_id", "evidence_id", "source_locator", "model_locator", "target_kind",
+  "target_label", "operation", "claim", "limit", "status", "reviewer", "source_inspected",
+  "corpus_inspected", "reviewed_at", "interpretive_certification", "model_media",
+]);
+const EXPORT_FIELDS = new Set([
+  "schema", "project_id", "project_revision", "read_only_source", "status",
+  "interpretive_certification", "synced_to_cloudflare_d1", "written_to_private_mcp",
+  "media_or_scans_stored", "reviews",
+]);
+const REVIEW_STRING_LIMITS = {
+  id:200, project_id:200, source_id:200, source_title:500, unit_id:200,
+  comparison_unit_id:200, evidence_id:200, source_locator:250, model_locator:250,
+  target_label:160, claim:1600, limit:1600, reviewer:200,
+};
+const validRevision = (value) => value === null || typeof value === "string" || Number.isInteger(value);
 const text = (v) => typeof v === "string" ? v.trim() : "";
 const array = (v) => Array.isArray(v) ? v : [];
 const select = (s) => document.querySelector(s);
@@ -93,10 +110,61 @@ export function declaredModelSources(project) {
   return [...out.values()].slice(0,50);
 }
 export function modelReviewExport(project, revision, reviews) {
-  return { schema:"analysis-cultural/source-model-reviews/v1", project_id:String(project.id),
+  const doc = { schema:"analysis-cultural/source-model-reviews/v1", project_id:String(project.id),
     project_revision:revision ?? null, read_only_source:true, status:"pending_academic_review",
     interpretive_certification:"NOT_ASSESSED", synced_to_cloudflare_d1:false,
     written_to_private_mcp:false, media_or_scans_stored:false, reviews:array(reviews) };
+  const check = validateModelReviewExport(doc, project, revision);
+  if (!check.ok) throw new Error(check.issues.join(" "));
+  return doc;
+}
+export function validateModelReviewExport(doc, project, revision) {
+  const issues = [];
+  if (!project?.id || !Array.isArray(project.units)) return { ok:false, issues:["El proyecto importado no permite cotejar el contrato de exportación."] };
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return { ok:false, issues:["Se requiere un objeto de exportación v1."] };
+  if ([...EXPORT_FIELDS].some((key) => !Object.hasOwn(doc, key)) || Object.keys(doc).some((key) => !EXPORT_FIELDS.has(key)))
+    issues.push("El sobre debe contener todos los campos del esquema v1 y ninguna propiedad adicional.");
+  if (!doc || doc.schema !== "analysis-cultural/source-model-reviews/v1") issues.push("Versión de esquema no admitida.");
+  if (typeof doc.project_id !== "string" || doc.project_id.length < 1 || doc.project_id.length > 200 || !validRevision(doc.project_revision))
+    issues.push("El identificador del proyecto o su revisión no cumple el esquema v1.");
+  if (doc?.project_id !== String(project.id) || (doc?.project_revision ?? null) !== (revision ?? null))
+    issues.push("El proyecto o la revisión del sobre no coincide con la fuente importada.");
+  if (doc?.read_only_source !== true || doc?.status !== "pending_academic_review" ||
+      doc?.interpretive_certification !== "NOT_ASSESSED") issues.push("El estado debe permanecer pendiente de revisión humana.");
+  if (doc?.synced_to_cloudflare_d1 !== false || doc?.written_to_private_mcp !== false || doc?.media_or_scans_stored !== false)
+    issues.push("La exportación debe declarar que no sincroniza datos ni almacena medios o escaneos.");
+  if (!Array.isArray(doc?.reviews) || doc.reviews.length > 250) {
+    issues.push("La exportación requiere hasta 250 registros.");
+    return { ok:false, issues };
+  }
+  const ids = new Set();
+  for (const [index, review] of doc.reviews.entries()) {
+    const prefix = `Registro ${index + 1}: `;
+    if (!review || typeof review !== "object" || Array.isArray(review)) {
+      issues.push(prefix + "se requiere un objeto de cotejo.");
+      continue;
+    }
+    if ([...REVIEW_FIELDS].some((key) => !Object.hasOwn(review, key))) issues.push(prefix + "faltan campos requeridos por el esquema v1.");
+    if (Object.keys(review).some((key) => !REVIEW_FIELDS.has(key))) issues.push(prefix + "contiene propiedades fuera del esquema v1.");
+    for (const [key, maxLength] of Object.entries(REVIEW_STRING_LIMITS)) {
+      if (typeof review[key] !== "string" || review[key].length > maxLength)
+        issues.push(prefix + `el campo ${key} debe ser texto de hasta ${maxLength} caracteres.`);
+    }
+    if (!validRevision(review.project_revision) || typeof review.source_inspected !== "boolean" ||
+        typeof review.corpus_inspected !== "boolean") issues.push(prefix + "los tipos de revisión y versión no cumplen el esquema v1.");
+    if (typeof review.id !== "string" || !review.id.trim() || ids.has(review.id)) issues.push(prefix + "requiere un identificador único.");
+    else ids.add(review.id);
+    if (review.project_id !== String(project.id) || (review.project_revision ?? null) !== (revision ?? null))
+      issues.push(prefix + "el proyecto o la revisión no coincide con el sobre.");
+    if (typeof review.reviewed_at !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i.test(review.reviewed_at) ||
+        !Number.isFinite(Date.parse(review.reviewed_at)) ||
+        review.interpretive_certification !== "NOT_ASSESSED" || review.model_media !== "LOCAL_PREVIEW_NOT_STORED")
+      issues.push(prefix + "los metadatos de procedencia, fecha o certificación no cumplen el esquema.");
+    const result = validateModelReview(review, project);
+    for (const message of result.issues) issues.push(prefix + message);
+  }
+  return { ok:!issues.length, issues };
 }
 // Browser UI: loaded text/images remain in the tab; the generated record contains
 // locators and textual observations, never private PDFs or selected media bytes.
@@ -202,7 +270,7 @@ export function bindModelReviewUi() {
     event.preventDefault();
     if (!ctx) return;
     const source=ctx.project.sources.find((s)=>String(s?.id)===value("source"));
-    const review={ id:"MR-"+crypto.randomUUID(),project_id:String(ctx.project.id),project_revision:ctx.revision,
+    const review={ id:"MR-"+crypto.randomUUID(),project_id:String(ctx.project.id),project_revision:ctx.revision ?? null,
       source_id:value("source"),source_title:source?.title || source?.name || source?.citation || source?.id || "",
       unit_id:value("unit"),comparison_unit_id:value("comparison"),evidence_id:value("evidence"),
       source_locator:value("locator"),model_locator:value("model-locator"),target_kind:value("target-kind"),
