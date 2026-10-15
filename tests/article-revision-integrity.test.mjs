@@ -22,6 +22,8 @@ function fixture() {
   return { jwk, jwt };
 }
 
+const sharedFixture = fixture();
+
 function fakeDb(preloadDocuments = 0) {
   const rows = new Map(), calls = [];
   const key = (user, doc, revision) => JSON.stringify([user, doc, revision]);
@@ -100,7 +102,7 @@ function post(body, jwt) {
 }
 
 test("remote revision IDs are immutable across Markdown, fields, title, parent and version", async () => {
-  const { jwk, jwt } = fixture();
+  const { jwk, jwt } = sharedFixture;
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ keys: [jwk] }), { status: 200 });
   try {
@@ -134,7 +136,7 @@ test("remote revision IDs are immutable across Markdown, fields, title, parent a
 });
 
 test("document cap prevents creating invisible cloud documents but permits further versions of existing ones", async () => {
-  const { jwk, jwt } = fixture();
+  const { jwk, jwt } = sharedFixture;
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ keys: [jwk] }), { status: 200 });
   try {
