@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  validateModelReview, saveModelReviews, loadModelReviews, modelReviewStorageKey, modelReviewExport,
+  validateModelReview, saveModelReviews, loadModelReviews, modelReviewStorageKey, modelReviewExport, declaredModelSources,
 } from "../public/laboratorio/theory-review.mjs";
 
 const project = {
@@ -77,4 +77,17 @@ test("Cloudflare web pilot exposes a local source-figure workbench without priva
   assert.match(css,/@media\(max-width:560px\)\{\.mm-model-pair/);
   assert.match(headers,/frame-src 'self' blob:/);
   assert.doesNotMatch(await readFile(new URL("../public/laboratorio/theory-review.mjs",import.meta.url),"utf8"),/fetch\(|navigator\.sendBeacon|XMLHttpRequest/);
+});
+test("declared academic models link only to matching imported bibliography and never claim automatic PDF review",()=>{
+  const p={...project,analysis_modules:[
+    {id:"SOURCE_FIGURE_THEORY_QA_GATE",source_models:[
+      {source_id:"SRC-GC",name:"García Contto",printed_pages:["49","57"]},
+      {source_id:"SRC-NOT-IMPORTED",name:"No declarado",printed_pages:["12"]}]},
+    {id:"VIOLI",source_id:"SRC-GC",name:"Another source model",printed_pages:"15-26"},
+  ]};
+  const index=declaredModelSources(p);
+  assert.deepEqual(index.map(x=>x.source_id),["SRC-GC"]);
+  assert.equal(index[0].declared_locator,"49, 57");
+  assert.equal(index[0].status,"DECLARED_NOT_VISUALLY_VERIFIED_BY_SITE");
+  assert.deepEqual(declaredModelSources({...project,analysis_modules:[]}),[]);
 });

@@ -24,3 +24,11 @@
 .mm-model-record p{margin:6px 0;overflow-wrap:anywhere;color:var(--mm-muted)}
 #model-status{font-size:.76rem;color:var(--mm-green);line-height:1.5}
 @media(max-width:560px){.mm-model-pair{grid-template-columns:minmax(0,1fr)}.mm-model-panel{padding:15px}.mm-model-actions .button{width:100%}}
+
+.mm-model-suggestion-box{margin-top:12px;border:1px solid var(--mm-line);border-radius:7px;padding:10px;font-size:.78rem}
+.mm-model-suggestion-box summary{cursor:pointer;font-weight:650}
+.mm-model-suggestion-box>p{margin:9px 0;color:var(--mm-muted);line-height:1.5}
+.mm-model-suggestion{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--mm-line)}
+.mm-model-suggestion p{margin:0;line-height:1.45;overflow-wrap:anywhere}
+.mm-model-suggestion .button{flex-shrink:0}
+@media(max-width:560px){.mm-model-suggestion{flex-direction:column;align-items:stretch}.mm-model-suggestion .button{width:100%}}
