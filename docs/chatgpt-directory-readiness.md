@@ -17,6 +17,53 @@
 
 Si el lanzamiento exige cambiar la identidad, permisos, endpoint o D1 del Site actual, se detiene y rediseña la ruta. No publiques un paquete que conecte al MCP privado o que pida una clave compartida.
 
+
+## Contrato de seguridad para el MCP remoto
+
+El MCP remoto constituye un servicio público separado de la web Pages, del almacenamiento D1 de revisión y del conector privado de ChatGPT. La ruta propuesta es:
+
+```text
+ChatGPT ── OAuth del usuario ──> MCP remoto (/mcp)
+                                      │
+                                      ├── catálogo público del producto (solo lectura)
+                                      └── espacio del usuario, únicamente tras autorización por proyecto
+
+Web Pages ── Cloudflare Access ──> API y D1 del laboratorio
+Conector privado ─────────────────> proyecto científico privado
+```
+
+Estas rutas mantienen propietarios, credenciales, permisos y almacenes separados; compartir una interfaz o un vocabulario de análisis no habilita una conexión entre ellas.
+
+### Identidad, alcance y autorización
+
+- El servidor valida cada token según el emisor, la firma, la audiencia, la vigencia y los permisos declarados para el cliente y la herramienta solicitada. El proveedor, el registro de cliente y el dominio se eligen antes de publicar; este documento no declara que estén configurados.
+- La identidad de usuario y el espacio autorizado se derivan de la sesión validada y de una relación de membresía comprobada por el servidor. El identificador de proyecto recibido en una llamada es un selector, no una prueba de acceso; cada lectura vuelve a verificar usuario, proyecto y revisión.
+- La primera superficie expuesta se limita a metadatos públicos del producto en modo de solo lectura. La lectura de espacios privados requiere autorización expresa por proyecto y una prueba de aislamiento entre cuentas. Las herramientas de escritura requieren permiso específico, consentimiento visible, registro de auditoría y una vía comprobada de revocación y borrado.
+- Las anotaciones de proyecto, borradores de tesis, decisiones autorales, archivos, corpus, imágenes y bibliotecas permanecen fuera del servicio público inicial. No se importan desde el conector privado ni se exponen mediante IDs, logs, mensajes de error o exportaciones.
+- El registro operativo conserva el identificador de solicitud, la identidad seudonimizada, el ámbito autorizado, la herramienta, el resultado y el momento; excluye tokens, texto del corpus, archivos y payloads completos. La retención y eliminación se fijan antes de habilitar persistencia.
+
+### Contrato OAuth/MCP que se debe implementar
+
+La implementación HTTP sigue el flujo de autorización MCP y la integración publicada para ChatGPT; el boceto de arquitectura anterior aún no constituye una implementación. El servidor remoto expone transporte Streamable HTTP en una URL HTTPS estable y publica su Protected Resource Metadata; el servidor de autorización publica metadatos OAuth u OpenID Connect. El identificador canónico del recurso se mantiene idéntico en los metadatos y en el parámetro `resource` de las solicitudes de autorización y token; el proveedor lo vincula al token, y el servidor MCP comprueba en cada petición firma, `iss`, audiencia/recurso, vigencia y scopes antes de resolver la identidad y los permisos. La credencial viaja en `Authorization: Bearer` y nunca en la URL. Véanse la [especificación de autorización MCP](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization), el [contrato OAuth para plugins de OpenAI](https://developers.openai.com/plugins/build/auth) y [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728.html).
+
+El flujo de usuario usa autorización de código con PKCE `S256`; el servidor de autorización debe declarar los métodos de autenticación que acepta en el endpoint de token. Antes del flujo se elige y configura un mecanismo de identidad de cliente compatible —CIMD, preregistro o DCR—, además de emisor, URI canónica, callback y política de scopes; la selección concreta permanece pendiente de las decisiones del propietario. Cuando el proveedor emite `iss` en la respuesta, se valida contra el emisor registrado antes de intercambiar el código, para impedir confusión entre servidores de autorización. OpenAI recomienda usar un proveedor establecido en vez de construir autenticación propia.
+
+La autorización se declara por herramienta mediante `securitySchemes`: el catálogo público limitado a metadatos puede admitir `noauth`, mientras toda operación sobre espacios personales, lecturas privadas o escrituras declara OAuth y los scopes mínimos correspondientes. Para solicitar la vinculación de cuenta desde una herramienta, el servidor combina esa declaración con el reto de autenticación MCP en `_meta["mcp/www_authenticate"]`; valida de nuevo el token y la membresía en el manejador de cada herramienta. La conexión mTLS puede identificar a ChatGPT como cliente de transporte, pero no reemplaza OAuth para identificar a la persona ni la autorización de cada operación. Los errores de autenticación y alcance conservan los códigos y retos definidos por MCP, sin revelar si existen cuentas, proyectos o registros ajenos.
+
+### Puertas previas a cualquier publicación
+
+1. Confirmar dominio y entorno de alojamiento controlados por el propietario, proveedor OAuth, registro de cliente y destinatarios permitidos; almacenar credenciales solo como secretos del servicio.
+2. Fijar la URI canónica HTTPS del recurso MCP, transporte Streamable HTTP, documentos de descubrimiento, mecanismo de registro del cliente, callback, scopes mínimos y respuesta de emisor; comprobar la propagación del parámetro `resource` hasta la audiencia del token.
+3. Acordar un esquema versionado limitado a metadatos y un catálogo de herramientas con `securitySchemes` explícitos y permisos mínimos; documentar qué campos entran, se guardan, se exportan y se eliminan.
+4. Revisar amenazas de suplantación, reproducción de tokens, confusión de audiencia o emisor, acceso horizontal entre proyectos, elevación de permisos, abuso de herramientas y filtración por logs.
+5. Aprobar política de acceso, revocación, auditoría, límites de uso, retención y borrado. Mantener la D1 del laboratorio y el MCP privado fuera del alcance del servicio remoto.
+6. Probar con dos identidades y proyectos sintéticos: cinco recorridos autorizados y tres rechazos (otra cuenta, proyecto/revisión fuera de alcance y operación sin permiso); incluir expiración/revocación, scopes insuficientes y validación del emisor, y confirmar que no se devuelve contenido cruzado.
+7. Verificar la instalación con una cuenta elegible de ChatGPT y distinguir conexión, revisión del directorio y publicación. Una respuesta HTTP correcta o el éxito del escáner no acredita aislamiento ni aprobación.
+
+### Decisiones del propietario pendientes
+
+El desarrollo del endpoint queda condicionado a confirmar el dominio y el entorno de despliegue, el proveedor OAuth, el modelo de membresía/tenancy, la retención autorizada y los datos legalmente confirmados de soporte y privacidad. También se necesita resolver el estado de producción de Access/D1 de Pages por el issue #12. Mientras esas decisiones y pruebas falten, el contrato es una especificación de seguridad; no describe un puente operativo ni habilita sincronización.
+
 ## Lista de entrega para el portal de Plugins
 
 - [ ] Identidad de desarrollador individual o negocio verificada.
