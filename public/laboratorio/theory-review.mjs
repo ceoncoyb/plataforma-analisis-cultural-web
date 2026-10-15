@@ -69,6 +69,29 @@ export function validateModelReview(value, project) {
   }
   return { ok:!issues.length, issues };
 }
+// Read models only from this project's declaration. A declaration is NOT visual
+// verification of the cited source. Never fabricate pages, figures or source IDs.
+export function declaredModelSources(project) {
+  const sourceIds = new Set(array(project?.sources).map((x) => String(x?.id)));
+  const out = new Map();
+  for (const module of array(project?.analysis_modules)) {
+    if (!module || typeof module !== "object") continue;
+    const models = [...array(module.source_models),...array(module.additional_sources)];
+    if (module.source_id) models.push(module);
+    for (const model of models) {
+      const id = text(model?.source_id);
+      if (!id || !sourceIds.has(id)) continue;
+      const pages = Array.isArray(model.printed_pages)
+        ? model.printed_pages.join(", ")
+        : text(model.printed_pages || model.source_locator || "");
+      const existing = out.get(id);
+      if (!existing) out.set(id,{ source_id:id, model_name:text(model.name || model.work || module.name || ""),
+        declared_locator:pages, module_id:text(module.id), status:"DECLARED_NOT_VISUALLY_VERIFIED_BY_SITE" });
+      else if (!existing.declared_locator && pages) existing.declared_locator=pages;
+    }
+  }
+  return [...out.values()].slice(0,50);
+}
 export function modelReviewExport(project, revision, reviews) {
   return { schema:"analysis-cultural/source-model-reviews/v1", project_id:String(project.id),
     project_revision:revision ?? null, read_only_source:true, status:"pending_academic_review",
@@ -118,6 +141,37 @@ function renderReviews() {
     el.append(article);
   }
 }
+function renderDeclaredModels() {
+  const el=select("#model-suggestion-list");
+  if (!el || !ctx) return;
+  el.replaceChildren();
+  const suggestions=declaredModelSources(ctx.project);
+  const count=select("#model-suggestion-count");
+  if(count)count.textContent=String(suggestions.length);
+  const parent=select("#model-source-suggestions");
+  if(parent)parent.hidden=!suggestions.length;
+  for(const suggestion of suggestions) {
+    const source=array(ctx.project.sources).find((x)=>String(x?.id)===suggestion.source_id);
+    const row=document.createElement("div");row.className="mm-model-suggestion";
+    const label=document.createElement("p");
+    const sourceTitle=String(source?.title || source?.name || source?.citation || suggestion.source_id);
+    label.textContent=sourceTitle+" · "+(suggestion.declared_locator || "sin localizador registrado");
+    row.append(label);
+    const button=document.createElement("button");
+    button.type="button";button.className="button button-light button-small";
+    button.textContent="Usar referencia";
+    button.addEventListener("click",()=>{
+      field("source").value=suggestion.source_id;
+      field("locator").value=suggestion.declared_locator;
+      field("model-locator").value="";
+      field("source-inspected").checked=false;
+      field("corpus-inspected").checked=false;
+      status("Se cargó una referencia declarada. Abre la fuente y verifica su figura o tabla antes de guardar.");
+      field("model-locator").focus();
+    });
+    row.append(button);el.append(row);
+  }
+}
 export function mountModelReview(exported, revision) {
   const project = exported?.project?.units ? exported.project : exported;
   if (!project || !Array.isArray(project.units) || !project.id) return;
@@ -129,7 +183,7 @@ export function mountModelReview(exported, revision) {
   appendOptions(field("source"),sources,"Fuente del proyecto (obligatoria)","");
   appendOptions(field("unit"),units,"Selecciona la unidad principal","");
   appendOptions(field("comparison"),units,"Sin comparación de unidades","");
-  refreshEvidence();renderReviews();
+  refreshEvidence();renderReviews();renderDeclaredModels();
   select("#model-review-panel").hidden=false;
   status(sources.length ? "Modelos y evidencias deben cotejarse manualmente. No se importa ninguna imagen de libros automáticamente."
     : "Esta exportación no contiene fuentes; añade fuentes al proyecto antes de validar modelos.",!sources.length);
