@@ -101,8 +101,12 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
    finally{event.target.value="";}
  });
  async function cloudRequest(method,body){
-   const response=await fetch("/api/article-drafts",{method,credentials:"same-origin",cache:"no-store",
+   const response=await fetch("/api/article-drafts",{method,credentials:"same-origin",cache:"no-store",redirect:"manual",
      headers:body?{"content-type":"application/json"}:{},body:body?JSON.stringify(body):undefined});
+   // Access challenges unauthenticated browsers with a 302. Do not follow
+   // that redirect from fetch: a cross-origin login otherwise looks like a CORS failure.
+   if(response.type==="opaqueredirect"||(response.status>=300&&response.status<400))
+     throw Object.assign(new Error("Inicia sesión con Cloudflare Access y reintenta."),{login:true});
    const type=response.headers.get("content-type")||"";
    if(!type.includes("application/json"))throw Object.assign(new Error("Cloudflare Access requiere iniciar sesión."),{login:true});
    const payload=await response.json();
