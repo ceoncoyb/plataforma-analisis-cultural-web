@@ -415,7 +415,7 @@ test("academic reversioning page exposes editable local and private cloud revisi
   assert.match(page, /id="import-vault"/);
   assert.match(page, /id="sync-cloud"/);
   assert.match(page, /id="load-cloud"/);
-  assert.match(app, /localStorage\\.setItem\\(VAULT_KEY/);
+  assert.match(app, /localStorage\.setItem\(VAULT_KEY/);
   assert.match(app, /guardar crea una revisión nueva/i);
   assert.match(page, /No se sincroniza entre dispositivos ni se envía al servidor/);
 });
