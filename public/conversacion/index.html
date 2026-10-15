@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es-PE">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f2e9">
+  <meta name="description" content="Piloto privado de conversación textual, sujeto a Cloudflare Access y presupuesto del proveedor. No conecta el corpus ni el MCP privado.">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="/assets/brand-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/site.css">
+  <link rel="stylesheet" href="/conversacion/chat.css">
+  <title>Conversación protegida · Plataforma de análisis cultural</title>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <header class="topbar">
+    <div class="container nav">
+      <a class="brand" href="/" aria-label="Plataforma, inicio">
+        <img src="/assets/brand-mark.svg" alt="">
+        <span>Plataforma<small>investigación trazable</small></span>
+      </a>
+      <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="primary-menu">Menú</button>
+      <nav class="navlinks" id="primary-menu" data-menu aria-label="Navegación principal">
+        <a href="/">Inicio</a><a href="/demo/">Demo general</a><a href="/laboratorio/">Laboratorio</a>
+      </nav>
+      <div class="nav-actions"><a class="button button-light button-small" href="/privacy/">Privacidad</a></div>
+    </div>
+  </header>
+  <main id="contenido" class="chat-shell container">
+    <div class="chat-intro">
+      <span class="eyebrow">PILOTO PRIVADO · SINCRONIZACIÓN DESACTIVADA</span>
+      <h1>Conversación textual, <em>con control explícito.</em></h1>
+      <p>Esta página es una propuesta en evaluación. Solo funciona cuando la persona autorizada se autentica con Cloudflare Access y se configura un presupuesto. No consulta el corpus, Zotero, Obsidian, la tesis ni el conector privado.</p>
+    </div>
+    <div class="chat-grid">
+      <section class="chat-panel" aria-labelledby="conversation-title">
+        <header class="chat-panel-head">
+          <div><span class="chat-overline">01 · CONVERSACIÓN</span><h2 id="conversation-title">Mensajes de esta pestaña</h2></div>
+          <button id="clear-chat" class="button button-light button-small" type="button">Borrar historial</button>
+        </header>
+        <div id="chat-history" class="chat-history" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Historial de conversación">
+          <p id="empty-chat" class="chat-empty">No hay mensajes. Se conservarán únicamente en la memoria de esta pestaña, hasta que los borres o cierres la página.</p>
+        </div>
+        <form id="chat-form" class="chat-form">
+          <label for="chat-text">Mensaje de texto</label>
+          <textarea id="chat-text" name="message" maxlength="1600" rows="4" required placeholder="Escribe una pregunta…" aria-describedby="chat-limits"></textarea>
+          <div id="chat-limits" class="chat-count"><span id="remaining">0 de 1600 caracteres</span><span>Máximo 8 mensajes en el contexto enviado</span><span>Si se alcanza el límite, se omiten turnos antiguos sin modificar tus mensajes visibles.</span></div>
+          <label class="chat-consent" for="chat-consent">
+            <input id="chat-consent" type="checkbox" required>
+            <span>Autorizo enviar el texto que escriba y el historial reciente de esta pestaña a OpenAI a través del servidor protegido, únicamente cuando pulse «Enviar». No incluiré información confidencial ni datos personales de terceros.</span>
+          </label>
+          <div class="chat-actions">
+            <button id="send-chat" class="button button-dark" type="submit">Enviar mensaje</button>
+            <a class="button button-light" href="/api/session?return_to=%2Fconversacion%2F">Iniciar sesión con Cloudflare Access</a>
+          </div>
+          <p id="chat-status" class="chat-status" role="status" aria-live="polite">El servicio aún no se ha activado en producción.</p>
+        </form>
+      </section>
+      <aside class="chat-context" aria-labelledby="pilot-limits">
+        <span class="chat-overline">02 · CONTROLES Y ALCANCE</span>
+        <h2 id="pilot-limits">No es el asistente privado del proyecto.</h2>
+        <p>El servidor solo recibe los mensajes que escribes aquí. Los envía al proveedor únicamente tras validación de identidad, límites y presupuesto.</p>
+        <dl>
+          <div><dt>Sesión</dt><dd>Cloudflare Access, identidad permitida</dd></div>
+          <div><dt>Cuotas</dt><dd>Límites diarios y espera mínima entre solicitudes</dd></div>
+          <div><dt>Persistencia</dt><dd>Historial en memoria; D1 guarda solo contadores de uso por identidad/día</dd></div>
+          <div><dt>Modelo</dt><dd>Configuración aprobada del servidor, nunca clave en esta web</dd></div>
+          <div><dt>Archivos</dt><dd>No acepta medios, adjuntos ni exportaciones del corpus</dd></div>
+        </dl>
+        <p class="chat-guard">Si falla el acceso, la cuota o la conexión del modelo, no se envía una segunda solicitud automática. El historial local permanece bajo tu control.</p>
+        <a href="/privacy/">Ver política de privacidad y tratamiento de datos →</a>
+      </aside>
+    </div>
+  </main>
+  <footer class="footer"><div class="container"><div class="footer-bottom"><span>Plataforma de análisis cultural · piloto no operativo</span><a href="/">Volver al inicio</a></div></div></footer>
+  <script type="module" src="/conversacion/chat.js"></script>
+  <script src="/assets/site.js" defer></script>
+</body>
+</html>
