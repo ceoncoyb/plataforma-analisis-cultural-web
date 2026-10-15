@@ -12,7 +12,7 @@ import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, se
  const clean=value=>value.trim()||"Pendiente de especificación; no inferido automáticamente.";
  function currentFields(){return Object.fromEntries(fields.map(key=>[key,form.elements[key].value.trim()]));}
  function currentDocument(){return vault.documents.find(item=>item.document_id===documentId)||null;}
- function renderDocuments(){
+ function renderDocuments({ preferExisting = true } = {}){
    // A recovered archive may belong to a different browser/document ID.
    if(vault.documents.length&&!currentDocument()){
      documentId=vault.documents[0].document_id;
