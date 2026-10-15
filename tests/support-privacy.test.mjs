@@ -22,8 +22,8 @@ test("support warns users not to publish private secrets or corpus in GitHub iss
 });
 
 test("privacy accurately treats D1 as unverified and offers support route", () => {
-  assert.match(privacy, /La sincronización remota sigue pendiente de una prueba autenticada en producción/);
-  assert.match(privacy, /D1 separa registros por identidad/);
+  assert.match(privacy, /La lectura, escritura, aislamiento y borrado remotos siguen pendientes de una prueba autenticada en producción/);
+  assert.match(privacy, /asociado a la identidad de Access, proyecto y revisión/);
   assert.match(privacy, /href="\/support\/"/);
   assert.doesNotMatch(privacy, /<script[^>]+src="https?:\/\//i);
 });

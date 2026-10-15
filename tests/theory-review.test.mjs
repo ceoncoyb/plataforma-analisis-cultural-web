@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  validateModelReview, saveModelReviews, loadModelReviews, modelReviewStorageKey, modelReviewExport, declaredModelSources,
+  validateModelReview, validateModelReviewExport, saveModelReviews, loadModelReviews, modelReviewStorageKey, modelReviewExport, declaredModelSources, sourceFigureGate,
 } from "../public/laboratorio/theory-review.mjs";
 
 const project = {
@@ -46,7 +46,9 @@ test("comparative mythic or transductive claims require a distinct evidenced uni
 test("local-only records preserve project and revision scoping and exclude scans",()=>{
   const values=new Map();
   const storage={getItem:(k)=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};
-  const reviews=[{...ready,id:"MR1",interpretive_certification:"NOT_ASSESSED"}];
+  const reviews=[{...ready,id:"MR1",project_id:"study-01",project_revision:379,
+    source_title:"García Contto, Manual de semiótica",reviewed_at:"2026-10-15T12:00:00.000Z",
+    interpretive_certification:"NOT_ASSESSED",model_media:"LOCAL_PREVIEW_NOT_STORED"}];
   const saved=saveModelReviews(storage,"study-01",379,reviews);
   assert.equal(saved.written_to_private_mcp,false);
   assert.equal(saved.synced_to_cloudflare_d1,false);
@@ -61,6 +63,29 @@ test("local-only records preserve project and revision scoping and exclude scans
   assert.equal(output.interpretive_certification,"NOT_ASSESSED");
   assert.deepEqual(output.reviews,reviews);
   assert.equal(output.media_or_scans_stored,false);
+  assert.deepEqual(validateModelReviewExport(output,project,379),{ok:true,issues:[]});
+  assert.throws(()=>modelReviewExport(project,379,[{...reviews[0],source_id:"SRC-UNKNOWN"}]),/fuente registrada/);
+  assert.equal(validateModelReviewExport({...output,written_to_private_mcp:true},project,379).ok,false);
+  assert.equal(validateModelReviewExport({...output,private_corpus:["forbidden"]},project,379).ok,false);
+  assert.equal(validateModelReviewExport({...output,project_revision:380},project,379).ok,false);
+  assert.equal(validateModelReviewExport({...output,reviews:[reviews[0],reviews[0]]},project,379).ok,false);
+  assert.equal(validateModelReviewExport({...output,reviews:[{...reviews[0],comparison_unit_id:{unexpected:true}}]},project,379).ok,false);
+});
+test("versioned export schema states its local-only boundary and rejects unmodeled payloads",async()=>{
+  const {readFile}=await import("node:fs/promises");
+  const schema=JSON.parse(await readFile(new URL("../public/schemas/source-model-reviews-v1.schema.json",import.meta.url),"utf8"));
+  const servedSchema=JSON.parse(await readFile(new URL("../dist/schemas/source-model-reviews-v1.schema.json",import.meta.url),"utf8"));
+  assert.deepEqual(servedSchema,schema);
+  assert.equal(schema.$schema,"https://json-schema.org/draft/2020-12/schema");
+  assert.equal(schema.properties.schema.const,"analysis-cultural/source-model-reviews/v1");
+  assert.equal(schema.properties.synced_to_cloudflare_d1.const,false);
+  assert.equal(schema.properties.written_to_private_mcp.const,false);
+  assert.equal(schema.properties.media_or_scans_stored.const,false);
+  assert.equal(schema.additionalProperties,false);
+  assert.equal(schema.$defs.review.additionalProperties,false);
+  assert.ok(schema.$defs.review.required.includes("source_id"));
+  assert.ok(schema.$defs.review.required.includes("unit_id"));
+  assert.ok(schema.$defs.review.required.includes("evidence_id"));
 });
 test("Cloudflare web pilot exposes a local source-figure workbench without private MCP or D1 writes",async()=>{
   const {readFile}=await import("node:fs/promises");
@@ -90,4 +115,17 @@ test("declared academic models link only to matching imported bibliography and n
   assert.equal(index[0].declared_locator,"49, 57");
   assert.equal(index[0].status,"DECLARED_NOT_VISUALLY_VERIFIED_BY_SITE");
   assert.deepEqual(declaredModelSources({...project,analysis_modules:[]}),[]);
+});
+
+test("declared source-figure gate restricts theoretical source choices and rejects an incomplete declaration",()=>{
+  const gated={...project,integrity_contract:{source_figure_provenance_gate:{
+    theory_module_id:"SOURCE_FIGURE_THEORY_QA_GATE_20261015",required_model_source_ids:["SRC-GC","SRC-SECOND"],
+  }},analysis_modules:[{id:"SOURCE_FIGURE_THEORY_QA_GATE_20261015",source_models:[{source_id:"SRC-GC"}],additional_sources:[{source_id:"SRC-SECOND"}]}],
+    sources:[...project.sources,{id:"SRC-SECOND",title:"Second source"},{id:"SRC-OTHER",title:"Other bibliography"}]};
+  assert.deepEqual(sourceFigureGate(gated),{required:true,ready:true,modelSourceIds:["SRC-GC","SRC-SECOND"],requiredModelSourceIds:["SRC-GC","SRC-SECOND"]});
+  assert.equal(validateModelReview(ready,gated).ok,true);
+  assert.ok(validateModelReview({...ready,source_id:"SRC-OTHER"},gated).issues.some((issue)=>issue.includes("puerta de procedencia")));
+  const incomplete={...gated,analysis_modules:[{id:"SOURCE_FIGURE_THEORY_QA_GATE_20261015",source_models:[{source_id:"SRC-GC"}]}]};
+  assert.equal(sourceFigureGate(incomplete).ready,false);
+  assert.ok(validateModelReview(ready,incomplete).issues.some((issue)=>issue.includes("está incompleta")));
 });

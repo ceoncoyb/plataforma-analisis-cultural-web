@@ -32,3 +32,9 @@
 .mm-model-suggestion p{margin:0;line-height:1.45;overflow-wrap:anywhere}
 .mm-model-suggestion .button{flex-shrink:0}
 @media(max-width:560px){.mm-model-suggestion{flex-direction:column;align-items:stretch}.mm-model-suggestion .button{width:100%}}
+.mm-model-sync{margin-top:16px;border:1px solid var(--mm-line);border-radius:8px;padding:12px;font-size:.8rem}
+.mm-model-sync summary{cursor:pointer;font-weight:650}
+.mm-model-sync>p{margin:9px 0;color:var(--mm-muted);line-height:1.55;overflow-wrap:anywhere}
+.mm-model-sync .mm-model-actions{align-items:center;margin-top:9px}
+.mm-model-sync select{max-width:100%;min-width:min(100%,380px);padding:7px;border:1px solid var(--mm-line);border-radius:5px}
+#model-sync-status{font-size:.76rem;color:var(--mm-green);line-height:1.5}
