@@ -370,17 +370,18 @@ test("browser workflow annotates a real selected video interval and persists/exp
 
 
 
-test("controlled academic reversioning route provides a local-only auditable draft workflow", async () => {
+test("controlled academic reversioning route provides editable, locally versioned drafts", async () => {
   const page = await read("reversionados/index.html");
+  const app = await read("reversionados/app.mjs");
   const css = await read("assets/site.css");
   assert.match(page, /Protocolo en diseño/);
-  assert.match(page, /no se guardan ni se envían/i);
   assert.match(page, /Hallazgos comprobados/);
-  assert.match(page, /Pendiente de especificación; no inferido automáticamente/);
   assert.match(page, /Descargar Markdown/);
-  assert.match(page, /No se ha guardado ni enviado/);
+  assert.match(page, /id="save-revision"/);
+  assert.match(page, /id="sync-cloud"/);
+  assert.match(app, /Pendiente de especificación; no inferido automáticamente/);
+  assert.match(app, /Revisión y aprobación autoral documentadas/);
   assert.match(css, /\.revision-workbench/);
-  assert.match(page, /Revisión y aprobación autoral documentadas/);
 });
 
 
