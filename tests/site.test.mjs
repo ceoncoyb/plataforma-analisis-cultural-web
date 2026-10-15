@@ -406,14 +406,17 @@ test("academic reversioning saves immutable local revisions and imports history 
   assert.throws(() => parseVault({ schema: "wrong", documents: [] }), /formato/);
 });
 
-test("academic reversioning page exposes create, load, export, and import controls with local-only persistence", async () => {
+test("academic reversioning page exposes editable local and private cloud revision controls", async () => {
   const page = await read("reversionados/index.html");
+  const app = await read("reversionados/app.mjs");
   assert.match(page, /id="save-revision"/);
   assert.match(page, /id="load-revision"/);
   assert.match(page, /id="export-vault"/);
   assert.match(page, /id="import-vault"/);
-  assert.match(page, /localStorage\.setItem\(VAULT_KEY/);
-  assert.match(page, /guardar crea una revisión nueva/i);
+  assert.match(page, /id="sync-cloud"/);
+  assert.match(page, /id="load-cloud"/);
+  assert.match(app, /localStorage\\.setItem\\(VAULT_KEY/);
+  assert.match(app, /guardar crea una revisión nueva/i);
   assert.match(page, /No se sincroniza entre dispositivos ni se envía al servidor/);
 });
 
