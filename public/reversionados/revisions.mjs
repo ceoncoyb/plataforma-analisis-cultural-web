@@ -74,8 +74,24 @@ export function mergeVaults(leftInput, rightInput) {
       target = { document_id: incoming.document_id, title: incoming.title, revisions: [] };
       documents.push(target);
     }
-    const known = new Set(target.revisions.map((revision) => revision.revision_id));
-    for (const revision of incoming.revisions) if (!known.has(revision.revision_id)) target.revisions.push(revision);
+    const known = new Map(target.revisions.map((revision) => [revision.revision_id, revision]));
+    for (const revision of incoming.revisions) {
+      const previous = known.get(revision.revision_id);
+      if (previous) {
+        // The remote D1 timestamp may differ from the browser creation timestamp.
+        // Compare immutable manuscript identity, not transport/audit timestamps.
+        const previousFields = previous.fields, incomingFields = revision.fields;
+        const sameFields = Object.keys(previousFields).length === Object.keys(incomingFields).length
+          && Object.keys(previousFields).every((key) => previousFields[key] === incomingFields[key]);
+        if (previous.version !== revision.version
+          || (previous.parent_revision_id || null) !== (revision.parent_revision_id || null)
+          || previous.sha256 !== revision.sha256 || previous.markdown !== revision.markdown || !sameFields)
+          throw new TypeError("Conflicto de integridad: un mismo ID de versión contiene datos diferentes.");
+      } else {
+        target.revisions.push(revision);
+        known.set(revision.revision_id, revision);
+      }
+    }
     target.revisions.sort((a, b) => a.version - b.version || a.created_at.localeCompare(b.created_at));
     if (incoming.revisions.length) target.title = incoming.title;
   }
