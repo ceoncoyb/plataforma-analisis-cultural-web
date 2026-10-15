@@ -47,3 +47,16 @@ No pongas contraseñas, tokens de GitHub ni claves API en estos campos. Guarda y
 ## Alcance
 
 Esta D1 pertenece al proyecto Pages y no es la D1 interna del plugin MCP. No hay escritura web→MCP automática: el flujo con el conector sigue usando la exportación JSON separada hasta que se implemente y autorice un puente específico. No importes a D1 datos que no quieras almacenar en tu cuenta Cloudflare.
+
+
+## 5. Habilitar el archivo académico privado
+
+La ruta `/reversionados/` conserva un archivo editable local en el navegador y ofrece guardar/recuperar en la misma D1 del proyecto. La API es `/api/article-drafts`; requiere el mismo Access de `/api/*`, el binding `DB` y una identidad incluida en `CF_ACCESS_ALLOWED_EMAILS`. Las versiones se guardan como filas inmutables ligadas al correo validado por Access, documento, revisión y hash SHA-256 del Markdown.
+
+1. Verifica primero los pasos 1–3 y la lectura autenticada existente del laboratorio. No uses una sesión anónima como prueba de escritura.
+2. En `/reversionados/`, guarda una versión local de prueba con datos sintéticos.
+3. Inicia sesión con el botón de Cloudflare Access y pulsa **Guardar historial en Cloudflare**.
+4. Comprueba en D1 la tabla `academic_article_versions`; luego pulsa **Recuperar historial de Cloudflare** y coteja la versión y su hash.
+5. Si Access devuelve 401/403 o la API 503, conserva el archivo local y corrige la configuración antes de transferir materiales reales.
+
+La sincronización solo ocurre al pulsar el botón explícito. El código no envía fuentes originales ni adjuntos, pero sí envía el contenido de las versiones de manuscrito incluidas en el historial. No sincronices borradores confidenciales o protegidos sin revisar permisos y el tratamiento de datos de tu cuenta Cloudflare.
