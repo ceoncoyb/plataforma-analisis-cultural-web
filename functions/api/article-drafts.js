@@ -104,10 +104,21 @@ export async function onRequestPost({ request, env }) {
     if (actualHash !== suppliedHash) return json({ error: "The revision hash does not match its Markdown." }, 400);
     await ensureTable(env.DB);
     const existing = await env.DB.prepare(
-      "SELECT sha256 FROM academic_article_versions WHERE user_email = ? AND document_id = ? AND revision_id = ?",
+      "SELECT sha256, title, version, parent_revision_id, content_json FROM academic_article_versions WHERE user_email = ? AND document_id = ? AND revision_id = ?",
     ).bind(auth.identity.email, document_id, revision_id).first();
     if (existing) {
-      if (existing.sha256 !== suppliedHash) return json({ error: "This revision ID already exists with different content." }, 409);
+      // A revision ID identifies the entire immutable snapshot, not only its Markdown digest.
+      // The Markdown SHA-256 alone would permit silent changes to title, fields or ancestry.
+      const stored = JSON.parse(existing.content_json);
+      const storedFields = stored?.fields;
+      const sameFields = storedFields && typeof storedFields === "object" && !Array.isArray(storedFields)
+        && Object.keys(storedFields).length === Object.keys(fields).length
+        && Object.keys(fields).every((key) => storedFields[key] === fields[key]);
+      const unchanged = existing.sha256 === suppliedHash
+        && existing.title === title && Number(existing.version) === version
+        && (existing.parent_revision_id || null) === parent_revision_id
+        && stored?.markdown === markdown && sameFields;
+      if (!unchanged) return json({ error: "This revision ID already exists with different content or metadata." }, 409);
       return json({ ok: true, duplicate: true, document_id, revision_id, sha256: suppliedHash });
     }
     if (parent_revision_id) {
@@ -116,6 +127,13 @@ export async function onRequestPost({ request, env }) {
       ).bind(auth.identity.email, document_id, parent_revision_id).first();
       if (!parent) return json({ error: "The parent revision was not found in this private document." }, 409);
     }
+    // The read API caps visible documents at MAX_DOCUMENTS_PER_USER.
+    // Refuse to persist additional document IDs that would silently disappear on recovery.
+    const documents = await env.DB.prepare(
+      "SELECT COUNT(DISTINCT document_id) AS total, MAX(CASE WHEN document_id = ? THEN 1 ELSE 0 END) AS already_present FROM academic_article_versions WHERE user_email = ?",
+    ).bind(document_id, auth.identity.email).first();
+    if (Number(documents?.total || 0) >= MAX_DOCUMENTS_PER_USER && !documents?.already_present)
+      return json({ error: "The private archive has reached its document limit." }, 413);
     const count = await env.DB.prepare(
       "SELECT COUNT(*) AS total FROM academic_article_versions WHERE user_email = ?",
     ).bind(auth.identity.email).first();
