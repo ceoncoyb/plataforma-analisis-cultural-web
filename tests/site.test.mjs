@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import { createHash } from "node:crypto";
 import { projectExportToMultimodalReviewManifest, validateCandidateDecision, loadReviewDraft, saveReviewDraft, createReviewExport } from "../public/laboratorio/multimodal-review.mjs";
+import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, serializeVault } from "../public/reversionados/revisions.mjs";
+import { onRequestGet as getArticleDrafts, onRequestPost as postArticleDraft } from "../functions/api/article-drafts.js";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (path) => readFile(join(root, "public", path), "utf8");
@@ -366,3 +368,83 @@ test("browser workflow annotates a real selected video interval and persists/exp
 });
 
 
+
+
+test("controlled academic reversioning route provides editable, locally versioned drafts", async () => {
+  const page = await read("reversionados/index.html");
+  const app = await read("reversionados/app.mjs");
+  const css = await read("assets/site.css");
+  assert.match(page, /Protocolo en diseño/);
+  assert.match(page, /Hallazgos comprobados/);
+  assert.match(page, /Descargar Markdown/);
+  assert.match(page, /id="save-revision"/);
+  assert.match(page, /id="sync-cloud"/);
+  assert.match(app, /Pendiente de especificación; no inferido automáticamente/);
+  assert.match(app, /Revisión y aprobación autoral documentadas/);
+  assert.match(css, /\.revision-workbench/);
+});
+
+
+test("academic reversioning saves immutable local revisions and imports history without duplicating revision IDs", () => {
+  const fields1 = { title: "Estudio inicial", question: "¿Qué se transforma?", problem: "Problema A" };
+  const first = appendRevision(emptyVault(), {
+    documentId: "doc-1", revisionId: "rev-1", fields: fields1, markdown: "# v1", createdAt: "2026-10-15T10:00:00Z", sha256: "abc",
+  });
+  const fields2 = { ...fields1, problem: "Problema revisado" };
+  const second = appendRevision(first, {
+    documentId: "doc-1", revisionId: "rev-2", parentRevisionId: "rev-1", fields: fields2, markdown: "# v2", createdAt: "2026-10-15T11:00:00Z", sha256: "def",
+  });
+  assert.equal(first.documents[0].revisions.length, 1, "saving v2 does not mutate v1");
+  assert.equal(second.documents[0].revisions[1].version, 2);
+  assert.equal(second.documents[0].revisions[1].parent_revision_id, "rev-1");
+  assert.equal(selectRevision(second, "doc-1", "rev-1").fields.problem, "Problema A");
+  const imported = parseVault(serializeVault(second));
+  const merged = mergeVaults(second, imported);
+  assert.equal(merged.documents[0].revisions.length, 2, "importing an existing archive does not duplicate revisions");
+  assert.throws(() => appendRevision(second, {
+    documentId: "doc-1", revisionId: "rev-3", parentRevisionId: "missing", fields: fields2, markdown: "# v3", createdAt: "2026-10-15T12:00:00Z", sha256: "ghi",
+  }), /no pertenece/);
+  assert.throws(() => parseVault({ schema: "wrong", documents: [] }), /formato/);
+});
+
+test("academic reversioning page exposes editable local and private cloud revision controls", async () => {
+  const page = await read("reversionados/index.html");
+  const app = await read("reversionados/app.mjs");
+  assert.match(page, /id="save-revision"/);
+  assert.match(page, /id="load-revision"/);
+  assert.match(page, /id="export-vault"/);
+  assert.match(page, /id="import-vault"/);
+  assert.match(page, /id="sync-cloud"/);
+  assert.match(page, /id="load-cloud"/);
+  assert.match(app, /localStorage\.setItem\(VAULT_KEY/);
+  assert.match(app, /guardar crea una revisión nueva/i);
+  assert.match(page, /No se sincroniza entre dispositivos ni se envía al servidor/);
+});
+
+
+test("private Cloudflare article archive fails closed until Access authorizes the user", async () => {
+  let databaseTouches = 0;
+  const env = { DB: { prepare() { databaseTouches++; throw new Error("must not reach DB"); } } };
+  const get = await getArticleDrafts({ request: new Request("https://example.test/api/article-drafts"), env });
+  assert.equal(get.status, 503, "missing Access configuration is reported, not treated as an anonymous writable service");
+  const post = await postArticleDraft({
+    request: new Request("https://example.test/api/article-drafts", {
+      method: "POST", headers: { "content-type": "application/json", origin: "https://example.test" }, body: "{}",
+    }),
+    env: { ...env, CF_ACCESS_TEAM_DOMAIN: "team.cloudflareaccess.com", CF_ACCESS_AUD: "aud", CF_ACCESS_ALLOWED_EMAILS: "owner@example.com" },
+  });
+  assert.equal(post.status, 401, "a configured API still requires a verified Access JWT");
+  assert.equal(databaseTouches, 0, "unauthorized access never reaches D1");
+});
+
+
+test("reversioning editor runs from a same-origin module allowed by the strict content security policy", async () => {
+  const page = await read("reversionados/index.html");
+  const app = await read("reversionados/app.mjs");
+  const headers = await read("_headers");
+  assert.match(page, /<script type="module" src="\/reversionados\/app\.mjs"><\/script>/);
+  assert.match(app, /appendRevision/);
+  assert.match(app, /fetch\("\/api\/article-drafts"/);
+  assert.match(headers, /script-src 'self'/);
+  assert.doesNotMatch(page, /<script type="module">[\s\S]*?fetch\(/);
+});
