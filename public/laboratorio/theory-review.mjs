@@ -2,7 +2,7 @@
 // Independent of Cloudflare D1 and the private ChatGPT MCP. No media or book scans persist.
 const OPERATIONS = new Set([
   "narrative_state", "actantial_role", "semantic_opposition", "isotopy",
-  "tensive_correlation", "visual_plastic", "sexuated_enunciative_praxis",
+  "semic_sememic_analysis", "tensive_correlation", "visual_plastic", "sexuated_enunciative_praxis",
   "mythic_semiosis", "symbolic_convergence", "transductive_hypothesis",
   "semiotic_square", "other",
 ]);
@@ -49,8 +49,16 @@ export function validateModelReview(value, project) {
   if (!STATUSES.has(status)) issues.push("Estado de revisión no admitido.");
   if (!text(value.target_kind) || !["figure","table","analytic_relation"].includes(value.target_kind)) issues.push("Identifica figura, tabla o relación.");
   if (!text(value.target_label) || text(value.target_label).length > 160) issues.push("Especifica el identificador de la figura o tabla (hasta 160 caracteres).");
+  const semanticFields = ["nuclear_semes","contextual_clasemes","sememe_composition","contrastive_relation"];
   if (text(value.claim).length > 1600 || text(value.limit).length > 1600 ||
-      text(value.source_locator).length > 250 || text(value.model_locator).length > 250) issues.push("El texto supera el límite permitido.");
+      text(value.source_locator).length > 250 || text(value.model_locator).length > 250 ||
+      semanticFields.some((key) => text(value[key]).length > 1200)) issues.push("El texto supera el límite permitido.");
+  if (op === "semic_sememic_analysis" && status !== "draft") {
+    if (!text(value.nuclear_semes)) issues.push("Registra los semas nucleares candidatos o explica por qué no se proponen.");
+    if (!text(value.contextual_clasemes)) issues.push("Registra los clasemas contextuales candidatos o justifica que no se identifican.");
+    if (!text(value.sememe_composition)) issues.push("Explicita cómo se combinan los rasgos para proponer el semema, sin confundirlo con la figura.");
+    if (!text(value.contrastive_relation)) issues.push("Indica la unidad o el contraste que permitiría diferenciar la propuesta.");
+  }
   if (status !== "draft") {
     if (!value.source_inspected || !text(value.source_locator) || !text(value.model_locator))
       issues.push("La fuente debe inspeccionarse y consignar página/edición y modelo, tabla o figura.");
@@ -138,6 +146,19 @@ function renderReviews() {
       "<p>"+escapeHtml(row.status)+" · "+escapeHtml(row.source_title)+" · "+escapeHtml(row.source_locator)+"</p>"+
       "<p>Unidad "+escapeHtml(row.unit_id)+" · evidencia "+escapeHtml(row.evidence_id || "no vinculada")+
       " · certificación interpretativa: NO EVALUADA</p>";
+    if(row.operation==="semic_sememic_analysis") {
+      const semantic = [
+        ["Semas nucleares",row.nuclear_semes],
+        ["Clasemas contextuales",row.contextual_clasemes],
+        ["Composición del semema",row.sememe_composition],
+        ["Contraste/relación",row.contrastive_relation],
+      ].filter(([,v])=>text(v));
+      for(const [label,content] of semantic) {
+        const p=document.createElement("p");
+        const strong=document.createElement("strong");strong.textContent=label+": ";
+        p.append(strong,document.createTextNode(content));article.append(p);
+      }
+    }
     el.append(article);
   }
 }
@@ -207,7 +228,9 @@ export function bindModelReviewUi() {
       unit_id:value("unit"),comparison_unit_id:value("comparison"),evidence_id:value("evidence"),
       source_locator:value("locator"),model_locator:value("model-locator"),target_kind:value("target-kind"),
       target_label:value("target-label"),operation:value("operation"),claim:value("claim"),
-      limit:value("limit"),status:value("status"),reviewer:value("reviewer"),
+      limit:value("limit"),nuclear_semes:value("nuclear-semes"),
+      contextual_clasemes:value("contextual-clasemes"),sememe_composition:value("sememe-composition"),
+      contrastive_relation:value("contrastive-relation"),status:value("status"),reviewer:value("reviewer"),
       source_inspected:checked("source-inspected"),corpus_inspected:checked("corpus-inspected"),
       reviewed_at:new Date().toISOString(),interpretive_certification:"NOT_ASSESSED",
       model_media:"LOCAL_PREVIEW_NOT_STORED" };
