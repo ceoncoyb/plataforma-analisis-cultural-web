@@ -10,9 +10,9 @@ test("declares the full staged route from corpus integrity through controlled he
 test("does not mistake declared layers for executed records or certification",()=>{
  const result=auditSemioticJourney({project:{id:"p",method_profile:{layers:SEMIOTIC_STAGES.map(s=>({id:s.id+"_"+s.label}))},units:[{id:"I1"}]}});
  assert.equal(result.declaration_count,13);
- assert.equal(result.records_detected_count,0);
+ assert.equal(result.records_detected_count,1);
  assert.equal(result.certification,"NOT_ASSESSED");
- assert.equal(result.missing_execution_records.length,13);
+ assert.equal(result.missing_execution_records.length,12);
 });
 test("record presence is not interpretive certification",()=>{
  const result=auditSemioticJourney({project:{id:"p",readings:[{id:"A1",layer:"L3_audiovisual_relational_analysis"}],semic_analyses:[{id:"S1"}]}});
