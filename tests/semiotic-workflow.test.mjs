@@ -15,7 +15,7 @@ test("does not mistake declared layers for executed records or certification",()
  assert.equal(result.missing_execution_records.length,13);
 });
 test("record presence is not interpretive certification",()=>{
- const result=auditSemioticJourney({project:{id:"p",interval_analyses:[{id:"A1"}],semic_analyses:[{id:"S1"}]}});
+ const result=auditSemioticJourney({project:{id:"p",audiovisual_relational_analyses:[{id:"A1"}],semic_analyses:[{id:"S1"}]}});
  assert.equal(result.stages.find(s=>s.id==="L3").records,1);
  assert.equal(result.stages.find(s=>s.id==="L3a").records,1);
  assert.equal(result.stages.find(s=>s.id==="L8").records,0);
