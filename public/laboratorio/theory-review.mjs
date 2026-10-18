@@ -146,6 +146,19 @@ function renderReviews() {
       "<p>"+escapeHtml(row.status)+" · "+escapeHtml(row.source_title)+" · "+escapeHtml(row.source_locator)+"</p>"+
       "<p>Unidad "+escapeHtml(row.unit_id)+" · evidencia "+escapeHtml(row.evidence_id || "no vinculada")+
       " · certificación interpretativa: NO EVALUADA</p>";
+    if(row.operation==="semic_sememic_analysis") {
+      const semantic = [
+        ["Semas nucleares",row.nuclear_semes],
+        ["Clasemas contextuales",row.contextual_clasemes],
+        ["Composición del semema",row.sememe_composition],
+        ["Contraste/relación",row.contrastive_relation],
+      ].filter(([,v])=>text(v));
+      for(const [label,content] of semantic) {
+        const p=document.createElement("p");
+        const strong=document.createElement("strong");strong.textContent=label+": ";
+        p.append(strong,document.createTextNode(content));article.append(p);
+      }
+    }
     el.append(article);
   }
 }
