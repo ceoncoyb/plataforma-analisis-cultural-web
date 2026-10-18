@@ -68,6 +68,10 @@ test("local-only records preserve project and revision scoping and exclude scans
   assert.equal(saved.media_or_scans_stored,false);
   assert.deepEqual(loadModelReviews(storage,"study-01",379),reviews);
   assert.deepEqual(loadModelReviews(storage,"study-01",380),[]);
+  const semantic = {...ready,operation:"semic_sememic_analysis",nuclear_semes:"infantil",
+    contextual_clasemes:"contexto visual",sememe_composition:"combinación contextual",
+    contrastive_relation:"contraste con I02"};
+  assert.deepEqual(validateModelReview(semantic,project),{ok:true,issues:[]});
   assert.notEqual(modelReviewStorageKey("study-01",379),modelReviewStorageKey("other",379));
   values.set(modelReviewStorageKey("other",379),"{invalid");
   assert.deepEqual(loadModelReviews(storage,"other",379),[]);
