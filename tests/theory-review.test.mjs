@@ -28,6 +28,21 @@ test("documented source and corpus traces are required before handoff to human r
   assert.ok(validateModelReview({...ready,reviewer:""},project).issues.some(x=>x.includes("persona revisora")));
   assert.ok(validateModelReview({...ready,model_locator:""},project).issues.some(x=>x.includes("página/edición")));
 });
+test("sémico-semémico review requires distinct nuclear semes, contextual clasemes, sememe composition and contrast",()=>{
+  const incomplete=validateModelReview({...ready,operation:"semic_sememic_analysis"},project);
+  assert.equal(incomplete.ok,false);
+  for(const phrase of ["semas nucleares","clasemas contextuales","semema","contraste"]) {
+    assert.ok(incomplete.issues.some(x=>x.toLowerCase().includes(phrase)),phrase);
+  }
+  const complete=validateModelReview({...ready,operation:"semic_sememic_analysis",
+    nuclear_semes:"[candidato] infantil; contrastar con otras figuras y evidencia visual.",
+    contextual_clasemes:"[candidato] humano / divino solo si el contexto audiovisual lo sostiene.",
+    sememe_composition:"La lectura propuesta surge de combinar el rasgo diferencial con el contexto registrado; es provisional.",
+    contrastive_relation:"Comparar I01 e I02 con evidencias EV01 y EV02; continuidad no demostrada todavía."
+  },project);
+  assert.deepEqual(complete,{ok:true,issues:[]});
+  assert.equal(validateModelReview({...ready,operation:"semic_sememic_analysis",status:"draft"},project).ok,true);
+});
 test("semiotic square cannot be certified through a generic evidence field",()=>{
   const result=validateModelReview({...ready,operation:"semiotic_square"},project);
   assert.equal(result.ok,false);
@@ -68,7 +83,7 @@ test("Cloudflare web pilot exposes a local source-figure workbench without priva
   const js=await readFile(new URL("../public/laboratorio/lab.js",import.meta.url),"utf8");
   const css=await readFile(new URL("../public/laboratorio/lab.css",import.meta.url),"utf8");
   const headers=await readFile(new URL("../public/_headers",import.meta.url),"utf8");
-  for(const name of ["model-source","model-unit","model-evidence","model-locator","model-model-locator","model-operation","model-limit"]){
+  for(const name of ["model-source","model-unit","model-evidence","model-locator","model-model-locator","model-operation","model-limit","model-nuclear-semes","model-contextual-clasemes","model-sememe-composition","model-contrastive-relation"]){
     assert.match(html,new RegExp('name="'+name+'"'));
   }
   assert.match(html,/No se copia a D1, al MCP, a GitHub ni a la exportación/);
