@@ -21,3 +21,18 @@ test("record presence is not interpretive certification",()=>{
  assert.equal(result.stages.find(s=>s.id==="L8").records,0);
  assert.equal(result.certification,"NOT_ASSESSED");
 });
+
+test("an interval description alone does not certify audiovisual-relational reading or later synthesis",()=>{
+ const result=auditSemioticJourney({project:{
+  id:"fixture",
+  method_profile:{layers:SEMIOTIC_STAGES.map(s=>({id:s.id+"_declared"}))},
+  interval_analyses:[{id:"INT-1",observable_visual:"A figure enters the room."}],
+  semic_analyses:[{id:"SEM-1",semes:[],sememe:""}],
+  readings:[{id:"R-1",layer:"L2_intermodal_alignment",claim:"Alignment observed"}]
+ }});
+ assert.equal(result.stages.find(s=>s.id==="L1").records,1);
+ assert.equal(result.stages.find(s=>s.id==="L3").records,0);
+ assert.equal(result.stages.find(s=>s.id==="L2").records,1);
+ assert.equal(result.stages.find(s=>s.id==="L8").records,0);
+ assert.equal(result.certification,"NOT_ASSESSED");
+});
