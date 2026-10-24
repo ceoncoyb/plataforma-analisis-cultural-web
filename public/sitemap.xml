@@ -3,6 +3,8 @@
   <url><loc>https://plataforma-analisis-cultural-web.pages.dev/</loc><priority>1.0</priority></url>
   <url><loc>https://plataforma-analisis-cultural-web.pages.dev/demo/</loc><priority>0.9</priority></url>
   <url><loc>https://plataforma-analisis-cultural-web.pages.dev/laboratorio/</loc><priority>0.9</priority></url>
+  <url><loc>https://plataforma-analisis-cultural-web.pages.dev/reversionados/</loc><priority>0.7</priority></url>
   <url><loc>https://plataforma-analisis-cultural-web.pages.dev/plans/</loc><priority>0.6</priority></url>
+  <url><loc>https://plataforma-analisis-cultural-web.pages.dev/support/</loc><priority>0.4</priority></url>
   <url><loc>https://plataforma-analisis-cultural-web.pages.dev/privacy/</loc><priority>0.3</priority></url>
 </urlset>
