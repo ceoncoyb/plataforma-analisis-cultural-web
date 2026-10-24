@@ -97,7 +97,7 @@ test("all product routes expose SEO metadata, navigation and privacy", async () 
     assert.match(html, /name="description"/, route);
     assert.match(html, /name="viewport"/, route);
     assert.match(html, /rel="canonical"/, route);
-    assert.doesNotMatch(html, /\\son[a-z]+\\s*=/i, route);
+    assert.doesNotMatch(html, /\son[a-z]+\s*=/i, route);
     if (route !== "privacy/index.html") assert.match(html, /href="\/privacy\/"/, route);
   }
 });
