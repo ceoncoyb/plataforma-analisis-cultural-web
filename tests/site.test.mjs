@@ -90,15 +90,22 @@ test("lab storage and exports include project scope, corpus annotations and expl
 });
 
 test("all product routes expose SEO metadata, navigation and privacy", async () => {
-  const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "plans/index.html", "privacy/index.html", "support/index.html"];
+  const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "reversionados/index.html", "plans/index.html", "privacy/index.html", "support/index.html"];
   for (const route of routes) {
     const html = await read(route);
     assert.match(html, /<title>/, route);
     assert.match(html, /name="description"/, route);
     assert.match(html, /name="viewport"/, route);
     assert.match(html, /rel="canonical"/, route);
-    assert.doesNotMatch(html, /\son[a-z]+\s*=/i, route);
-    if (route !== "privacy/index.html") assert.match(html, /href="\/privacy\/"/, route);
+    assert.doesNotMatch(html, /\\son[a-z]+\\s*=/i, route);
+    if (route !== "privacy/index.html") assert.match(html, /href="\\/privacy\\/"/, route);
+  }
+});
+
+test("sitemap includes canonical routes omitted from its previous inventory", async () => {
+  const sitemap = await read("sitemap.xml");
+  for (const route of ["/reversionados/", "/support/"]) {
+    assert.ok(sitemap.includes(`https://plataforma-analisis-cultural-web.pages.dev${route}`), route);
   }
 });
 
@@ -215,7 +222,7 @@ test("project build fingerprints the interactive asset and rewrites every route"
   const fingerprint = createHash("sha256").update(script).digest("hex").slice(0, 12);
   const stylesheet = await read("assets/site.css");
   const cssFingerprint = createHash("sha256").update(stylesheet).digest("hex").slice(0, 12);
-  const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "plans/index.html", "privacy/index.html"];
+  const routes = ["index.html", "demo/index.html", "laboratorio/index.html", "reversionados/index.html", "plans/index.html", "privacy/index.html", "support/index.html"];
   for (const route of routes) {
     const html = await readFile(join(root, "dist", route), "utf8");
     assert.match(html, new RegExp(`/assets/site\\.${fingerprint}\\.js`), route);
