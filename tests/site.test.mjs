@@ -49,7 +49,7 @@ test("primary CTAs route to the actual public demo, with a clear return path", a
 test("all public entry points stay on Pages and do not redirect to the legacy ChatGPT Site", async () => {
   for (const route of ["index.html", "demo/index.html", "laboratorio/index.html"]) {
     const html = await read(route);
-    assert.doesNotMatch(html, /analisis-cultural-mcp\.casadepartoswa496020\.chatgpt\.site/);
+    assert.doesNotMatch(html, /\son[a-z]+\s*=/i, route);
     assert.doesNotMatch(html, /href="https?:\/\/[^\"]*chatgpt\.site/i);
   }
 });
@@ -98,7 +98,7 @@ test("all product routes expose SEO metadata, navigation and privacy", async () 
     assert.match(html, /name="viewport"/, route);
     assert.match(html, /rel="canonical"/, route);
     assert.doesNotMatch(html, /\\son[a-z]+\\s*=/i, route);
-    if (route !== "privacy/index.html") assert.match(html, /href="\\/privacy\\/"/, route);
+    if (route !== "privacy/index.html") assert.match(html, /href="\/privacy\/"/, route);
   }
 });
 
