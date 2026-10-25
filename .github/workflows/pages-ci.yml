@@ -17,3 +17,16 @@ jobs:
           node-version: '22'
       - name: Build and run regression tests
         run: npm test
+
+      - name: Upload non-sensitive pilot static preview
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-chat-static-preview
+          path: |
+            dist/conversacion/
+            dist/assets/site.css
+            dist/assets/site.js
+            dist/assets/brand-mark.svg
+          retention-days: 1
+          if-no-files-found: error
