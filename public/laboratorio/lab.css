@@ -25,6 +25,8 @@
 #model-status{font-size:.76rem;color:var(--mm-green);line-height:1.5}
 @media(max-width:560px){.mm-model-pair{grid-template-columns:minmax(0,1fr)}.mm-model-panel{padding:15px}.mm-model-actions .button{width:100%}}
 
+.mm-herm-boundary{margin:14px 0;padding:12px 14px;border-left:3px solid var(--mm-gold);background:#faf7ed;color:#4c5c51;font-size:.81rem;line-height:1.6}.mm-herm-legacy{margin-top:14px;border-top:1px solid var(--mm-line);padding-top:12px;font-size:.8rem}.mm-herm-legacy summary{cursor:pointer;font-weight:700}.mm-herm-legacy>p{color:var(--mm-muted);line-height:1.5}.mm-herm-panel select[multiple]{min-height:105px}.mm-herm-panel input[type=checkbox]{accent-color:var(--mm-green);margin-right:7px}#herm-source-guidance{display:block;color:var(--mm-muted);line-height:1.45;overflow-wrap:anywhere}
+
 .mm-model-suggestion-box{margin-top:12px;border:1px solid var(--mm-line);border-radius:7px;padding:10px;font-size:.78rem}
 .mm-model-suggestion-box summary{cursor:pointer;font-weight:650}
 .mm-model-suggestion-box>p{margin:9px 0;color:var(--mm-muted);line-height:1.5}

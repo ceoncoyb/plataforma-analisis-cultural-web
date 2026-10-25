@@ -3,6 +3,7 @@ import {
   loadReviewDraft, saveReviewDraft, createReviewExport, toSeconds,
 } from "/laboratorio/multimodal-review.mjs";
 import { bindModelReviewUi, mountModelReview, suggestModelUnit } from "/laboratorio/theory-review.mjs";
+import { bindHermeneuticReviewUi, mountHermeneuticReview } from "/laboratorio/hermeneutic-review.mjs";
 
 const $ = (s) => document.querySelector(s);
 const state = { source: null, project: null, manifest: null, media: null, mediaUrl: null, mediaIdentity: "unknown", mediaHash: null, draft: { annotations: [], cut_candidate_decisions: [] }, selected: null, frameUrl: null, frameTimer: null };
@@ -222,6 +223,7 @@ function renderProject(source){
   $("#source-meta").textContent=`Proyecto ${state.manifest.project_id||"(sin ID)"} · revisión ${revision??"sin versión"} · importado desde archivo local · no hay conexión de escritura al MCP.`;
   renderCounts();state.draft=loadReviewDraft(localStorage,state.manifest.project_id,state.manifest.revision);renderTree();renderCandidates();renderDraft();
   mountModelReview(state.source,state.manifest.revision);
+  mountHermeneuticReview(state.source,state.manifest.revision);
   if(state.project.cut_candidates?.length!==state.manifest.cut_candidates.length)setStatus("Se eliminaron IDs de candidatos duplicados durante la vista de revisión; el archivo original no se modificó.");else setStatus("Exportación leída. Verifica la revisión y selecciona el medio local antes de guardar cotejos.");
   setCloudStatus("Comprobando acceso protegido a D1…");loadCloudDraft();
   if(state.media)loadMedia(state.media);
@@ -236,5 +238,6 @@ $("#delete-cloud-draft").addEventListener("click",async()=>{
 });
 $("#export-review").addEventListener("click",()=>{if(!state.manifest)return;const annotations=state.draft.annotations;const result=createReviewExport(state.manifest,state.source,annotations,state.draft.cut_candidate_decisions);const blob=new Blob([JSON.stringify(result,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`revision-${(state.manifest.project_id||"proyecto").replace(/[^a-z0-9_-]/gi,"-")}-r${state.manifest.revision??"sin-version"}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setStatus("Revisión exportada como archivo separado. La fuente del plugin sigue intacta.");});
 bindModelReviewUi();
+bindHermeneuticReviewUi();
 $("#no-script").hidden=true;
 
