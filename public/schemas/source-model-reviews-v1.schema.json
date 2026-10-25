@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://plataforma-analisis-cultural-web.pages.dev/schemas/source-model-reviews-v1.schema.json",
+  "title": "Cotejos locales de modelos y fuentes",
+  "description": "Contrato para la exportación iniciada por la persona usuaria. No concede acceso, no autentica y no sincroniza con D1 ni con el MCP privado.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "project_id", "project_revision", "read_only_source", "status",
+    "interpretive_certification", "synced_to_cloudflare_d1", "written_to_private_mcp",
+    "media_or_scans_stored", "reviews"
+  ],
+  "properties": {
+    "schema": { "const": "analysis-cultural/source-model-reviews/v1" },
+    "project_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "project_revision": { "type": ["integer", "string", "null"] },
+    "read_only_source": { "const": true },
+    "status": { "const": "pending_academic_review" },
+    "interpretive_certification": { "const": "NOT_ASSESSED" },
+    "synced_to_cloudflare_d1": { "const": false },
+    "written_to_private_mcp": { "const": false },
+    "media_or_scans_stored": { "const": false },
+    "reviews": {
+      "type": "array",
+      "maxItems": 250,
+      "items": { "$ref": "#/$defs/review" }
+    }
+  },
+  "$defs": {
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "project_id", "project_revision", "source_id", "source_title", "unit_id",
+        "comparison_unit_id", "evidence_id", "source_locator", "model_locator", "target_kind",
+        "target_label", "operation", "claim", "limit", "status", "reviewer", "source_inspected",
+        "corpus_inspected", "reviewed_at", "interpretive_certification", "model_media"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "project_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "project_revision": { "type": ["integer", "string", "null"] },
+        "source_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "source_title": { "type": "string", "maxLength": 500 },
+        "unit_id": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "comparison_unit_id": { "type": "string", "maxLength": 200 },
+        "evidence_id": { "type": "string", "maxLength": 200 },
+        "source_locator": { "type": "string", "maxLength": 250 },
+        "model_locator": { "type": "string", "maxLength": 250 },
+        "target_kind": { "enum": ["figure", "table", "analytic_relation"] },
+        "target_label": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "operation": {
+          "enum": [
+            "narrative_state", "actantial_role", "semantic_opposition", "isotopy",
+            "tensive_correlation", "visual_plastic", "sexuated_enunciative_praxis",
+            "mythic_semiosis", "symbolic_convergence", "transductive_hypothesis",
+            "semiotic_square", "other"
+          ]
+        },
+        "claim": { "type": "string", "maxLength": 1600 },
+        "limit": { "type": "string", "maxLength": 1600 },
+        "status": { "enum": ["draft", "source_checked", "evidence_checked", "ready_for_human_review"] },
+        "reviewer": { "type": "string", "maxLength": 200 },
+        "source_inspected": { "type": "boolean" },
+        "corpus_inspected": { "type": "boolean" },
+        "reviewed_at": { "type": "string", "format": "date-time" },
+        "interpretive_certification": { "const": "NOT_ASSESSED" },
+        "model_media": { "const": "LOCAL_PREVIEW_NOT_STORED" }
+      }
+    }
+  }
+}

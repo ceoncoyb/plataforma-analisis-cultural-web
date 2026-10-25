@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { projectExportToMultimodalReviewManifest, validateCandidateDecision, loadReviewDraft, saveReviewDraft, createReviewExport } from "../public/laboratorio/multimodal-review.mjs";
 import { appendRevision, emptyVault, mergeVaults, parseVault, selectRevision, serializeVault } from "../public/reversionados/revisions.mjs";
 import { onRequestGet as getArticleDrafts, onRequestPost as postArticleDraft } from "../functions/api/article-drafts.js";
+import { onRequestPost as postModelReview } from "../functions/api/source-model-reviews.js";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const read = (path) => readFile(join(root, "public", path), "utf8");
@@ -78,7 +79,7 @@ test("lab storage and exports include project scope, corpus annotations and expl
   const privacy = await read("privacy/index.html");
   const script = await read("assets/site.js");
   assert.match(privacy, /Los medios seleccionados \(video, audio, imágenes y documentos\) se previsualizan desde memoria local/);
-  assert.match(privacy, /La sincronización remota sigue pendiente de una prueba autenticada en producción/);
+  assert.match(privacy, /La lectura, escritura, aislamiento y borrado remotos siguen pendientes de una prueba autenticada en producción/);
   assert.match(demo, /tu material no se sube ni se envía a ChatGPT/i);
   assert.match(demo, /No es la D1 ni escribe en el plugin de ChatGPT/);
   assert.match(demo, /id="import-project"/);
@@ -87,6 +88,14 @@ test("lab storage and exports include project scope, corpus annotations and expl
   assert.match(script, /format: "cultural-analysis-workspace"/);
   assert.match(script, /imported_source_document: sourceDocument/);
   assert.match(script, /No se escribe al MCP/);
+});
+
+test("source-model review endpoint rejects unauthenticated requests before D1", async () => {
+  let touched = false;
+  const response = await postModelReview({ request:new Request("https://pages.example/api/source-model-reviews",{method:"POST",headers:{origin:"https://pages.example","content-type":"application/json"},body:"{}"}),
+    env:{DB:{prepare(){touched=true;throw new Error("D1 must not be reached");}}} });
+  assert.equal(response.status,503);
+  assert.equal(touched,false);
 });
 
 test("all product routes expose SEO metadata, navigation and privacy", async () => {

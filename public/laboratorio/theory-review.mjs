@@ -7,6 +7,23 @@ const OPERATIONS = new Set([
   "semiotic_square", "other",
 ]);
 const STATUSES = new Set(["draft", "source_checked", "evidence_checked", "ready_for_human_review"]);
+const REVIEW_FIELDS = new Set([
+  "id", "project_id", "project_revision", "source_id", "source_title", "unit_id",
+  "comparison_unit_id", "evidence_id", "source_locator", "model_locator", "target_kind",
+  "target_label", "operation", "claim", "limit", "status", "reviewer", "source_inspected",
+  "corpus_inspected", "reviewed_at", "interpretive_certification", "model_media",
+]);
+const EXPORT_FIELDS = new Set([
+  "schema", "project_id", "project_revision", "read_only_source", "status",
+  "interpretive_certification", "synced_to_cloudflare_d1", "written_to_private_mcp",
+  "media_or_scans_stored", "reviews",
+]);
+const REVIEW_STRING_LIMITS = {
+  id:200, project_id:200, source_id:200, source_title:500, unit_id:200,
+  comparison_unit_id:200, evidence_id:200, source_locator:250, model_locator:250,
+  target_label:160, claim:1600, limit:1600, reviewer:200,
+};
+const validRevision = (value) => value === null || typeof value === "string" || Number.isInteger(value);
 const text = (v) => typeof v === "string" ? v.trim() : "";
 const array = (v) => Array.isArray(v) ? v : [];
 const select = (s) => document.querySelector(s);
@@ -43,6 +60,11 @@ export function validateModelReview(value, project) {
   const unit = text(value.unit_id);
   const second = text(value.comparison_unit_id);
   if (!source) issues.push("Selecciona una fuente registrada en el proyecto importado.");
+  const sourceGate = sourceFigureGate(project);
+  if (sourceGate.required && !sourceGate.ready)
+    issues.push("La puerta de procedencia de figuras/tablas está incompleta: vincula todas las fuentes teóricas requeridas en el módulo declarado.");
+  if (sourceGate.required && !sourceGate.modelSourceIds.includes(text(value.source_id)))
+    issues.push("Selecciona una fuente teórica incluida en la puerta de procedencia de figuras/tablas.");
   if (!unit || !units.has(unit)) issues.push("Selecciona una unidad existente del corpus.");
   if (second && (!units.has(second) || second === unit)) issues.push("La unidad comparada debe existir y ser distinta.");
   if (!OPERATIONS.has(op)) issues.push("Selecciona una operación metodológica admitida.");
@@ -77,6 +99,23 @@ export function validateModelReview(value, project) {
   }
   return { ok:!issues.length, issues };
 }
+export function sourceFigureGate(project) {
+  const gate=project?.integrity_contract?.source_figure_provenance_gate;
+  if (!gate) return { required:false, ready:true, modelSourceIds:[], requiredModelSourceIds:[] };
+  const moduleId=text(gate.theory_module_id);
+  const module=array(project?.analysis_modules).find((item)=>String(item?.id||"")===moduleId);
+  const moduleIds=new Set([
+    ...array(module?.source_models),...array(module?.additional_sources),...(module?.source_id?[module]:[]),
+  ].map((model)=>text(model?.source_id)).filter(Boolean));
+  const sourceIds=new Set(array(project?.sources).map((item)=>String(item?.id||"")));
+  const requiredIds=array(gate.required_model_source_ids).map(String);
+  const uniqueIds=new Set(requiredIds);
+  const ready=Boolean(moduleId&&module&&requiredIds.length>0&&uniqueIds.size===requiredIds.length&&
+    requiredIds.every((id)=>moduleIds.has(id)&&sourceIds.has(id)));
+  return { required:true, ready,
+    modelSourceIds:requiredIds.filter((id)=>moduleIds.has(id)&&sourceIds.has(id)),
+    requiredModelSourceIds:requiredIds };
+}
 // Read models only from this project's declaration. A declaration is NOT visual
 // verification of the cited source. Never fabricate pages, figures or source IDs.
 export function declaredModelSources(project) {
@@ -101,10 +140,61 @@ export function declaredModelSources(project) {
   return [...out.values()].slice(0,50);
 }
 export function modelReviewExport(project, revision, reviews) {
-  return { schema:"analysis-cultural/source-model-reviews/v1", project_id:String(project.id),
+  const doc = { schema:"analysis-cultural/source-model-reviews/v1", project_id:String(project.id),
     project_revision:revision ?? null, read_only_source:true, status:"pending_academic_review",
     interpretive_certification:"NOT_ASSESSED", synced_to_cloudflare_d1:false,
     written_to_private_mcp:false, media_or_scans_stored:false, reviews:array(reviews) };
+  const check = validateModelReviewExport(doc, project, revision);
+  if (!check.ok) throw new Error(check.issues.join(" "));
+  return doc;
+}
+export function validateModelReviewExport(doc, project, revision) {
+  const issues = [];
+  if (!project?.id || !Array.isArray(project.units)) return { ok:false, issues:["El proyecto importado no permite cotejar el contrato de exportación."] };
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return { ok:false, issues:["Se requiere un objeto de exportación v1."] };
+  if ([...EXPORT_FIELDS].some((key) => !Object.hasOwn(doc, key)) || Object.keys(doc).some((key) => !EXPORT_FIELDS.has(key)))
+    issues.push("El sobre debe contener todos los campos del esquema v1 y ninguna propiedad adicional.");
+  if (!doc || doc.schema !== "analysis-cultural/source-model-reviews/v1") issues.push("Versión de esquema no admitida.");
+  if (typeof doc.project_id !== "string" || doc.project_id.length < 1 || doc.project_id.length > 200 || !validRevision(doc.project_revision))
+    issues.push("El identificador del proyecto o su revisión no cumple el esquema v1.");
+  if (doc?.project_id !== String(project.id) || (doc?.project_revision ?? null) !== (revision ?? null))
+    issues.push("El proyecto o la revisión del sobre no coincide con la fuente importada.");
+  if (doc?.read_only_source !== true || doc?.status !== "pending_academic_review" ||
+      doc?.interpretive_certification !== "NOT_ASSESSED") issues.push("El estado debe permanecer pendiente de revisión humana.");
+  if (doc?.synced_to_cloudflare_d1 !== false || doc?.written_to_private_mcp !== false || doc?.media_or_scans_stored !== false)
+    issues.push("La exportación debe declarar que no sincroniza datos ni almacena medios o escaneos.");
+  if (!Array.isArray(doc?.reviews) || doc.reviews.length > 250) {
+    issues.push("La exportación requiere hasta 250 registros.");
+    return { ok:false, issues };
+  }
+  const ids = new Set();
+  for (const [index, review] of doc.reviews.entries()) {
+    const prefix = `Registro ${index + 1}: `;
+    if (!review || typeof review !== "object" || Array.isArray(review)) {
+      issues.push(prefix + "se requiere un objeto de cotejo.");
+      continue;
+    }
+    if ([...REVIEW_FIELDS].some((key) => !Object.hasOwn(review, key))) issues.push(prefix + "faltan campos requeridos por el esquema v1.");
+    if (Object.keys(review).some((key) => !REVIEW_FIELDS.has(key))) issues.push(prefix + "contiene propiedades fuera del esquema v1.");
+    for (const [key, maxLength] of Object.entries(REVIEW_STRING_LIMITS)) {
+      if (typeof review[key] !== "string" || review[key].length > maxLength)
+        issues.push(prefix + `el campo ${key} debe ser texto de hasta ${maxLength} caracteres.`);
+    }
+    if (!validRevision(review.project_revision) || typeof review.source_inspected !== "boolean" ||
+        typeof review.corpus_inspected !== "boolean") issues.push(prefix + "los tipos de revisión y versión no cumplen el esquema v1.");
+    if (typeof review.id !== "string" || !review.id.trim() || ids.has(review.id)) issues.push(prefix + "requiere un identificador único.");
+    else ids.add(review.id);
+    if (review.project_id !== String(project.id) || (review.project_revision ?? null) !== (revision ?? null))
+      issues.push(prefix + "el proyecto o la revisión no coincide con el sobre.");
+    if (typeof review.reviewed_at !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i.test(review.reviewed_at) ||
+        !Number.isFinite(Date.parse(review.reviewed_at)) ||
+        review.interpretive_certification !== "NOT_ASSESSED" || review.model_media !== "LOCAL_PREVIEW_NOT_STORED")
+      issues.push(prefix + "los metadatos de procedencia, fecha o certificación no cumplen el esquema.");
+    const result = validateModelReview(review, project);
+    for (const message of result.issues) issues.push(prefix + message);
+  }
+  return { ok:!issues.length, issues };
 }
 // Browser UI: loaded text/images remain in the tab; the generated record contains
 // locators and textual observations, never private PDFs or selected media bytes.
@@ -166,7 +256,8 @@ function renderDeclaredModels() {
   const el=select("#model-suggestion-list");
   if (!el || !ctx) return;
   el.replaceChildren();
-  const suggestions=declaredModelSources(ctx.project);
+  const gate=sourceFigureGate(ctx.project);
+  const suggestions=declaredModelSources(ctx.project).filter((item)=>!gate.required||gate.modelSourceIds.includes(item.source_id));
   const count=select("#model-suggestion-count");
   if(count)count.textContent=String(suggestions.length);
   const parent=select("#model-source-suggestions");
@@ -197,7 +288,8 @@ export function mountModelReview(exported, revision) {
   const project = exported?.project?.units ? exported.project : exported;
   if (!project || !Array.isArray(project.units) || !project.id) return;
   ctx = { project,revision };
-  const sources = array(project.sources).filter((s)=>s && s.id)
+  const gate=sourceFigureGate(project);
+  const sources = array(project.sources).filter((s)=>s && s.id&&(!gate.required||gate.modelSourceIds.includes(String(s.id))))
     .map((s)=>[String(s.id),String(s.title || s.name || s.citation || s.id).slice(0,140)]);
   const units = array(project.units).filter((u)=>u && u.id)
     .map((u)=>[String(u.id),String(u.id)+" · "+String(u.label || u.type || "").slice(0,80)]);
@@ -206,8 +298,9 @@ export function mountModelReview(exported, revision) {
   appendOptions(field("comparison"),units,"Sin comparación de unidades","");
   refreshEvidence();renderReviews();renderDeclaredModels();
   select("#model-review-panel").hidden=false;
-  status(sources.length ? "Modelos y evidencias deben cotejarse manualmente. No se importa ninguna imagen de libros automáticamente."
-    : "Esta exportación no contiene fuentes; añade fuentes al proyecto antes de validar modelos.",!sources.length);
+  status(gate.required&&!gate.ready ? "La puerta de procedencia de figuras/tablas está incompleta. Completa las fuentes teóricas declaradas antes de registrar cotejos."
+    : sources.length ? (gate.required ? `Puerta de procedencia activa: ${sources.length} fuentes teóricas autorizadas para el cotejo. Verifica edición, páginas, figura/tabla y evidencia del corpus.` : "Modelos y evidencias deben cotejarse manualmente. No se importa ninguna imagen de libros automáticamente.")
+    : "Esta exportación no contiene fuentes; añade fuentes al proyecto antes de validar modelos.",!sources.length||(gate.required&&!gate.ready));
 }
 export function suggestModelUnit(id) {
   if (!ctx || !field("unit")) return;
@@ -223,7 +316,7 @@ export function bindModelReviewUi() {
     event.preventDefault();
     if (!ctx) return;
     const source=ctx.project.sources.find((s)=>String(s?.id)===value("source"));
-    const review={ id:"MR-"+crypto.randomUUID(),project_id:String(ctx.project.id),project_revision:ctx.revision,
+    const review={ id:"MR-"+crypto.randomUUID(),project_id:String(ctx.project.id),project_revision:ctx.revision ?? null,
       source_id:value("source"),source_title:source?.title || source?.name || source?.citation || source?.id || "",
       unit_id:value("unit"),comparison_unit_id:value("comparison"),evidence_id:value("evidence"),
       source_locator:value("locator"),model_locator:value("model-locator"),target_kind:value("target-kind"),
