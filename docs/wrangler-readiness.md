@@ -29,7 +29,26 @@ El informe utiliza `observed`, `not_observed` y `unknown`. **No observado no sig
 
 ### Estado operativo observado (14/10/2026)
 
-En el equipo Windows conectado no se encontró el comando `wrangler` en `PATH`; la invocación de prueba mediante `npx --yes wrangler --version` falló con `npm EBUSY`. No se repitió la instalación ni se intentó acceder a archivos fuera de las carpetas autorizadas. El usuario señala que Wrangler está disponible en su entorno, pero **esa instalación o autenticación concreta aún no se localizó** en la sesión remota. Los indicadores de Cloudflare por cuenta permanecen `unknown`.
+La instalación autenticada **sí fue localizada** en el directorio de trabajo `AI_ROUTER_STACK/project-hub/sovereign-hub/cloudflare` (instalación local dentro de `node_modules/.bin`, no necesariamente en `PATH`). No se requiere SMS para reutilizar una sesión CLI ya autorizada y vigente; esto no permite eludir requisitos de autenticación de otro canal.
+
+Comprobaciones reales, sin valores privados:
+
+- `wrangler whoami`, `pages project list`, `d1 list --json` y `pages secret list` se completaron correctamente. El nombre `OPENAI_API_KEY` está registrado como secreto, sin verificar su contenido.
+- `d1 execute analisis-cultural-lab --remote --command 'SELECT 1 AS readiness_probe' --json` funcionó; la existencia de una base no demuestra por sí sola un binding en Pages.
+- `pages project list --json` devolvió una lista resumida con columnas **Project Name**, **Project Domains**, **Git Provider** y **Last Modified**. **No incluye los bindings de Production**.
+- `wrangler pages download config plataforma-analisis-cultural-web` se ejecutó en una carpeta temporal aislada y descargó un `wrangler.toml`. Su estructura incluyó `[[env.production.d1_databases]]` y una declaración de `binding = "DB"`. La descarga temporal se destruyó al terminar; no se desplegó ni se cambió configuración.
+- La descarga no incluyó nombres de Access. Tampoco incluyó el nombre del secreto `OPENAI_API_KEY` ya constatado por separado. **No se debe inferir que un valor no existe por su ausencia del archivo descargado**.
+- Las rutas públicas `/api/session` y `/api/review-draft` todavía no cuentan con una sesión Access probada; su último resultado sin autenticación fue HTTP 503.
+
+### Herramienta adicional: verificar la estructura de Production
+
+```sh
+node scripts/cloudflare-production-binding.mjs
+```
+
+El nuevo diagnóstico ejecuta solo `pages download config` desde una carpeta temporal del sistema, analiza el ámbito **Production** y borra la copia tanto si la consulta tiene éxito como si falla. Reconoce nombres `DB` y `analisis-cultural-lab` dentro del mismo bloque TOML, sin mostrar IDs, correos ni valores. Devuelve `observed`, `not_observed` o `unknown`; no representa una prueba E2E ni autoriza activar OpenAI. Si el ejecutable no figura en `PATH`, señalar mediante `WRANGLER_BIN` la ruta local autorizada de `wrangler.cmd` (sin copiar tokens).
+
+**Pendiente de prueba real:** autorización por JWT, variables Access del entorno efectivo, lectura-escritura-borrado de borrador sintético, política de aislamiento, presupuesto y modelo OpenAI. No mezclar autenticación de Wrangler con login de usuario de Pages.
 
 **Dependencias propietarias:** issues [#12](https://github.com/ceoncoyb/plataforma-analisis-cultural-web/issues/12) (Access/D1), [#13](https://github.com/ceoncoyb/plataforma-analisis-cultural-web/issues/13) (OpenAI) y [#14](https://github.com/ceoncoyb/plataforma-analisis-cultural-web/issues/14) (MCP público).
 
