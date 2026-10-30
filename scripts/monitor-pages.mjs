@@ -7,10 +7,11 @@ const pages = [
   ["/", ["Sigue cada hallazgo", 'href="/demo/"']],
   ["/demo/", ['id="media-files"', "Una ficha sintética"]],
   ["/laboratorio/", ['id="manifest-file"', 'src="/laboratorio/lab.js"']],
+  ["/reversionados/", ["Reversionado académico controlado", 'href="/api/session?return_to=%2Freversionados%2F"', 'src="/reversionados/app.mjs"']],
   ["/privacy/", ['name="description"']],
   ["/support/", ["Reporta un problema reproducible", 'href="https://github.com/ceoncoyb/plataforma-analisis-cultural-web/issues/new"']],
 ];
-const protectedApis = ["/api/session", "/api/review-draft"];
+const protectedApis = ["/api/session", "/api/review-draft", "/api/article-drafts"];
 const legacyLink = /\b(?:href|src)\s*=\s*["']https?:\/\/[^"']*chatgpt\.site/i;
 
 // Accept only plausible Cloudflare Access redirects without following them.
@@ -69,6 +70,15 @@ export async function auditPages({ fetchImpl = fetch, origin = ORIGIN } = {}) {
           checks.push({ path: asset, status: reply.status });
           if (reply.status !== 200) errors.push(asset + ": expected HTTP 200, got " + reply.status);
         }
+      }
+    }
+
+    if (path === "/reversionados/") {
+      for (const asset of ["/reversionados/app.mjs", "/reversionados/revisions.mjs"]) {
+        const reply = await get(asset);
+        if (!reply) continue;
+        checks.push({ path: asset, status: reply.status });
+        if (reply.status !== 200) errors.push(asset + ": expected HTTP 200, got " + reply.status);
       }
     }
   }
